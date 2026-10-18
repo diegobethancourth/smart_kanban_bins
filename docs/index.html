@@ -152,16 +152,16 @@ a{color:var(--accent);text-underline-offset:2px}
 <div class="controls" role="group" aria-label="Filter by owner">
   <span class="lbl">Show tasks for</span>
   <button class="chip" data-f="all" aria-pressed="true">Everyone</button>
-  <button class="chip" data-f="DB" aria-pressed="false"><span class="dot" style="background:var(--db)"></span>Bethancourth</button>
-  <button class="chip" data-f="DJ" aria-pressed="false"><span class="dot" style="background:var(--dj)"></span>Jaladi</button>
-  <button class="chip" data-f="FR" aria-pressed="false"><span class="dot" style="background:var(--fr)"></span>Rumwaropen</button>
+  <button class="chip" data-f="DB" aria-pressed="false"><span class="dot" style="background:var(--db)"></span>Diego</button>
+  <button class="chip" data-f="DJ" aria-pressed="false"><span class="dot" style="background:var(--dj)"></span>Dhansukh</button>
+  <button class="chip" data-f="FR" aria-pressed="false"><span class="dot" style="background:var(--fr)"></span>Febylina</button>
   <span class="progress" id="progress"></span>
 </div>
 
 <section>
   <h2>Gantt chart</h2>
   <div class="legend">
-    <span><i style="background:var(--db)"></i>Bethancourth</span><span><i style="background:var(--dj)"></i>Jaladi</span><span><i style="background:var(--fr)"></i>Rumwaropen</span><span><i style="background:var(--all)"></i>Whole team</span>
+    <span><i style="background:var(--db)"></i>Diego</span><span><i style="background:var(--dj)"></i>Dhansukh</span><span><i style="background:var(--fr)"></i>Febylina</span><span><i style="background:var(--all)"></i>Whole team</span>
     <span><i style="background:var(--p-orange)"></i>Thanksgiving</span><span><i style="border-left:2px dashed var(--gold);width:2px;border-radius:0"></i>Milestone</span><span><i style="border-left:2px solid var(--maroon);width:2px;border-radius:0"></i>Today</span>
   </div>
   <div class="ganttbox"><div class="gantt" id="gantt"></div></div>
@@ -254,7 +254,7 @@ a{color:var(--accent);text-underline-offset:2px}
 
 <script>
 const DAY = 864e5, START = Date.UTC(2026,9,17), NDAYS = 49;
-const OWN = {DB:["Bethancourth","--db"],DJ:["Jaladi","--dj"],FR:["Rumwaropen","--fr"],ALL:["Whole team","--all"]};
+const OWN = {DB:["Diego","--db"],DJ:["Dhansukh","--dj"],FR:["Febylina","--fr"],ALL:["Whole team","--all"]};
 const MILES = [["M1","11-02"],["M2","11-16"],["M3","11-24"],["M4","12-01"],["M5","12-02"]];
 const ut = s => { const [m,d]=s.split("-").map(Number); return Date.UTC(2026,m-1,d); };
 const idx = t => Math.round((t-START)/DAY);
