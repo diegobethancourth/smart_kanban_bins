@@ -17,13 +17,13 @@
   /* pastel card tints from the ASU theme accents */
   --p-gold:#FFF4D1; --p-maroon:#F7E4EA; --p-blue:#E2F4FB; --p-green:#EDF7E2; --p-orange:#FFECDF; --p-grey:#F5F5F5;
   --display:Arial,'Helvetica Neue',Helvetica,sans-serif; --body:Arial,'Helvetica Neue',Helvetica,sans-serif; --mono:Consolas,'Courier New',ui-monospace,monospace;
-  --day:18px; --lab:230px;
+  --day:15px; --lab:210px;
   color-scheme:light;
 }
 /* Deliberately light-only: white page in every viewer theme */
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
-.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.wrap{max-width:1680px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
 header{display:flex;flex-direction:column;gap:4px;background:var(--maroon);color:var(--on-maroon);padding:12px 20px 14px;border-radius:8px 8px 0 0;border-bottom:6px solid var(--gold)}
 header .muted{color:var(--on-maroon);opacity:.92;max-width:none;font-size:14px;line-height:1.4}
 header .links{font-size:13px}
@@ -54,7 +54,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .progress{margin-left:auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 /* gantt */
-.ganttbox{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.ganttbox{overflow-x:auto;border:1px solid var(--line);border-radius:8px;width:fit-content;max-width:100%}
 .gantt{position:relative;width:calc(var(--lab) + 49 * var(--day));font-size:12.5px}
 .ghead{display:flex;position:relative;z-index:2;background:var(--maroon);color:var(--on-maroon)}
 .ghead .glab{background:var(--maroon);color:var(--on-maroon);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:flex-end;padding:6px 10px}
@@ -125,6 +125,30 @@ a{color:var(--accent);text-underline-offset:2px}
 .res dd{margin:0;color:var(--muted);font-size:13.5px}
 .res dt a{word-break:break-word}
 .note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:10px 14px;font-size:14px;border-radius:0 8px 8px 0}
+
+/* workspace: gantt left, task panel right */
+.work{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+.work > *{min-width:0}
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 60px);max-height:calc(100vh - 76px);overflow:auto;background:var(--p-gold);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-top:5px solid var(--maroon)}
+.panel .pp{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.panel h3{margin:0;font-size:19px;line-height:1.25;color:var(--maroon)}
+.panel h3 .pid{font-family:var(--mono);font-size:15px;color:var(--muted);margin-right:6px}
+.panel .full{font-size:14px;line-height:1.45}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:0;font-size:13.5px}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0}
+.deplink{font:inherit;font-family:var(--mono);font-size:12.5px;background:#FFFFFF;border:1px solid #EAD48A;border-radius:4px;padding:0 6px;cursor:pointer;color:var(--maroon);margin:0 4px 2px 0}
+.donebox{display:flex;gap:8px;align-items:center;font-size:14px;background:#FFFFFF;border-radius:6px;padding:7px 10px;cursor:pointer}
+.panel .gh{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.panel ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;font-size:14px;line-height:1.45}
+.pnav{display:flex;justify-content:space-between;gap:8px;padding-top:4px;border-top:1px solid #EAD48A}
+.pnav .btn{margin:0;background:#FFFFFF}
+.grow.sel{background:rgba(140,29,64,.07)}
+.grow.sel .glab{background:var(--maroon);color:var(--on-maroon)}
+.grow.sel .glab .gid{color:var(--gold)}
+.grow .ok{color:#3E7D10;margin-left:4px;font-weight:700}
+.grow.sel .ok{color:var(--gold)}
+@media (max-width:1099px){.work{grid-template-columns:1fr}.panel{position:static;max-height:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -134,7 +158,7 @@ a{color:var(--accent);text-underline-offset:2px}
 <header>
   <span class="eyebrow">MFG 598 · Group Project · 20 Oct – 4 Dec 2026</span>
   <h1>Simulated Smart Kanban Bins: work plan</h1>
-  <p class="muted">Tasks follow the five milestones in the proposal deck. Each task has one owner, a done check anyone on the team can verify, its dependencies, and a step-by-step guide (open it with the Guide button, or click a row in the Gantt chart). Ticks are saved in your own browser only.</p>
+  <p class="muted">Tasks follow the five milestones in the proposal deck. Each task has one owner, a done check anyone on the team can verify, its dependencies and a step-by-step guide: click any task in the Gantt chart to see them in the panel beside it. Ticks are saved in your own browser only.</p>
   <div class="links"><a href="https://github.com/diegobethancourth/smart_kanban_bins">Repository: github.com/diegobethancourth/smart_kanban_bins</a><a href="https://diegobethancourth.github.io/smart_kanban_bins/">This plan online: diegobethancourth.github.io/smart_kanban_bins</a></div>
 </header>
 
@@ -159,24 +183,18 @@ a{color:var(--accent);text-underline-offset:2px}
 </div>
 
 <section>
-  <h2>Gantt chart</h2>
+  <h2>Gantt chart and tasks</h2>
   <div class="legend">
     <span><i style="background:var(--db)"></i>Diego</span><span><i style="background:var(--dj)"></i>Dhansukh</span><span><i style="background:var(--fr)"></i>Febylina</span><span><i style="background:var(--all)"></i>Whole team</span>
     <span><i style="background:var(--p-orange)"></i>Thanksgiving</span><span><i style="border-left:2px dashed var(--gold);width:2px;border-radius:0"></i>Milestone</span><span><i style="border-left:2px solid var(--maroon);width:2px;border-radius:0"></i>Today</span>
   </div>
-  <div class="ganttbox"><div class="gantt" id="gantt"></div></div>
-  <p class="muted" style="font-size:13px">One column per day, 17 Oct – 4 Dec. Shaded columns are weekends. Click a row to open that task's guide below.</p>
-</section>
-
-<section>
-  <h2>Tasks</h2>
-  <div class="tablebox">
-    <table>
-      <thead><tr><th></th><th>ID</th><th style="width:48%">Task and done check</th><th>Owner</th><th>Dates</th><th>Needs</th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
+  <div class="work">
+    <div>
+      <div class="ganttbox"><div class="gantt" id="gantt"></div></div>
+      <p class="muted" style="font-size:13px;margin-top:8px">One column per day, 17 Oct – 4 Dec; shaded columns are weekends. Click a task to see its details and guide in the panel. The guides are suggested steps: adjust them as the work shows a better way, and note any change in <span class="mono">/docs/decisions.md</span>.</p>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
   </div>
-  <p class="muted" style="font-size:13px">The guides are suggested steps. Adjust them as the work shows a better way, and note any change in <span class="mono">/docs/decisions.md</span>.</p>
 </section>
 
 <section>
@@ -447,73 +465,87 @@ const P = [
    "Confirm the work plan page and the README load without signing in.",
    "Submit the repository link on Canvas."]]]]
 ];
-let done={}, open={}; try{ done = JSON.parse(localStorage.getItem("skb-done")||"{}"); }catch(e){}
-let filter="all";
+let done={}; try{ done = JSON.parse(localStorage.getItem("skb-done")||"{}"); }catch(e){}
+let filter="all", sel=null;
+const ALLT=[]; P.forEach(([pn,pt,pd,ts])=>ts.forEach(t=>ALLT.push({pn,pt,pd,id:t[0],sh:t[1],task:t[2],check:t[3],own:t[4],s:t[5],e:t[6],dep:t[7],steps:t[8]})));
+const byId=Object.fromEntries(ALLT.map(t=>[t.id,t]));
 const vis = o => filter==="all" || o===filter || o==="ALL";
+const visible = () => ALLT.filter(t=>vis(t.own));
+function defaultSel(){ const v=visible(), now=Date.now(); return (v.find(t=>!done[t.id] && ut(t.e)+DAY>now) || v[0]).id; }
+function save(){ try{ localStorage.setItem("skb-done",JSON.stringify(done)); }catch(e){} }
 
 function renderGantt(){
-  const g=document.getElementById("gantt"); g.innerHTML="";
-  let wk="", dy="";
+  const g=document.getElementById("gantt");
+  let wk="", dy="", ov="";
   for(let i=0;i<NDAYS;i++){
     const t=START+i*DAY, d=new Date(t), w=d.getUTCDay();
-    if(w===1) wk+=`<span style="left:calc(${i} * var(--day))">Week of ${fmt(t)}</span>`;
+    if(w===1) wk+=`<span style="left:calc(${i} * var(--day))">${fmt(t)}</span>`;
     dy+=`<span class="${w===0||w===6?"we":""}">${d.getUTCDate()}</span>`;
+    if(w===0||w===6) ov+=`<i class="we" style="left:calc(${i} * var(--day))"></i>`;
   }
-  let ov="";
-  for(let i=0;i<NDAYS;i++){ const w=new Date(START+i*DAY).getUTCDay(); if(w===0||w===6) ov+=`<i class="we" style="left:calc(${i} * var(--day))"></i>`; }
   ov+=`<i class="hol" style="left:calc(${idx(ut("11-26"))} * var(--day))"></i>`;
   MILES.forEach(([m,s])=>{ ov+=`<i class="ml" style="left:calc(${idx(ut(s))+.5} * var(--day))"></i>`; });
-  const now=Date.now(), ti=(now-START)/DAY; if(ti>=0&&ti<NDAYS) ov+=`<i class="today" style="left:calc(${ti} * var(--day))"></i>`;
-  let mk=MILES.map(([m,s])=>`<i class="mk" style="left:calc(${idx(ut(s))} * var(--day))"></i><b class="${m==="M4"?"left":""}" style="left:calc(${idx(ut(s))+1} * var(--day) + 4px)">${m}</b>`).join("");
+  const ti=(Date.now()-START)/DAY; if(ti>=0&&ti<NDAYS) ov+=`<i class="today" style="left:calc(${ti} * var(--day))"></i>`;
+  const mk=MILES.map(([m,s])=>`<i class="mk" style="left:calc(${idx(ut(s))} * var(--day))"></i><b class="${m==="M4"?"left":""}" style="left:calc(${idx(ut(s))+1} * var(--day) + 4px)">${m}</b>`).join("");
   let html=`<div class="overlay">${ov}</div>
    <div class="ghead"><div class="glab" style="height:38px">Task</div><div class="gtrack"><div class="weeks">${wk}</div><div class="days">${dy}</div></div></div>
    <div class="ghead mrow"><div class="glab">Milestones</div><div class="gtrack">${mk}</div></div>`;
-  for(const [pn,pt,pd,tasks] of P){
-    const v=tasks.filter(t=>vis(t[4])); if(!v.length) continue;
+  for(const [pn,pt] of P){
+    const v=visible().filter(t=>t.pn===pn); if(!v.length) continue;
     html+=`<div class="gphase"><div class="glab">Phase ${pn} · ${pt}</div><div class="gtrack"></div></div>`;
-    for(const [id,sh,,,own,s,e] of v){
-      const a=idx(ut(s)), b=idx(ut(e));
-      html+=`<div class="grow ${done[id]?"done":""}" tabindex="0" data-id="${id}" title="${id} · ${sh} · ${fmt(ut(s))} – ${fmt(ut(e))} · ${OWN[own][0]}">
-        <div class="glab"><span class="gid">${id}</span>${sh}</div>
-        <div class="gtrack"><i class="bar" style="left:calc(${a} * var(--day) + 1px);width:calc(${b-a+1} * var(--day) - 2px);background:var(${OWN[own][1]})"></i></div></div>`;
+    for(const t of v){
+      const a=idx(ut(t.s)), b=idx(ut(t.e));
+      html+=`<div class="grow ${done[t.id]?"done":""} ${t.id===sel?"sel":""}" role="button" tabindex="0" aria-pressed="${t.id===sel}" data-id="${t.id}" title="${t.id} · ${t.sh} · ${fmt(ut(t.s))} – ${fmt(ut(t.e))} · ${OWN[t.own][0]}">
+        <div class="glab"><span class="gid">${t.id}</span>${t.sh}${done[t.id]?'<span class="ok" aria-label="done">✓</span>':""}</div>
+        <div class="gtrack"><i class="bar" style="left:calc(${a} * var(--day) + 1px);width:calc(${b-a+1} * var(--day) - 2px);background:var(${OWN[t.own][1]})"></i></div></div>`;
     }
   }
   g.innerHTML=html;
   g.querySelectorAll(".grow").forEach(r=>{
-    const go=()=>{ const id=r.dataset.id; open[id]=true; renderTable();
-      const tr=document.getElementById("row-"+id); if(tr){ tr.scrollIntoView({block:"center",behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"}); tr.classList.add("flash"); setTimeout(()=>tr.classList.remove("flash"),1200);} };
-    r.addEventListener("click",go); r.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+    r.addEventListener("click",()=>select(r.dataset.id));
+    r.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); select(r.dataset.id); }
+      if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); step(e.key==="ArrowDown"?1:-1,true); }
+    });
   });
 }
-function renderTable(){
-  const tb=document.getElementById("rows"); tb.innerHTML="";
-  let n=0,k=0;
-  for(const [pn,pt,pd,tasks] of P){
-    const v=tasks.filter(t=>vis(t[4])); if(!v.length) continue;
-    tb.insertAdjacentHTML("beforeend",`<tr class="phase"><td colspan="6">Phase ${pn} · ${pt}<span class="pd">${pd}</span></td></tr>`);
-    for(const [id,sh,task,check,own,s,e,dep,steps] of v){
-      n++; if(done[id]) k++;
-      const a=ut(s), b=ut(e), opt=id==="T3.7"?'<span class="tag">optional</span>':"";
-      tb.insertAdjacentHTML("beforeend",`<tr id="row-${id}" class="${done[id]?"done":""}">
-        <td class="ck"><input type="checkbox" id="ck-${id}" aria-label="Mark ${id} done" ${done[id]?"checked":""}></td>
-        <td class="id">${id}</td>
-        <td><div class="task">${task}${opt}</div><div class="detail">Done when: ${check}</div>
-            <button class="btn" type="button" aria-expanded="${!!open[id]}" aria-controls="guide-${id}">${open[id]?"Hide guide":"Guide · "+steps.length+" steps"}</button></td>
-        <td><span class="owner"><span class="dot" style="background:var(${OWN[own][1]})"></span>${OWN[own][0]}</span></td>
-        <td class="dates">${a===b?fmt(a):fmt(a)+" – "+fmt(b)}</td>
-        <td class="dep">${dep||"—"}</td></tr>`);
-      const row=tb.lastElementChild;
-      row.querySelector("input").addEventListener("change",ev=>{ done[id]=ev.target.checked; try{ localStorage.setItem("skb-done",JSON.stringify(done)); }catch(e){} renderAll(); });
-      row.querySelector(".btn").addEventListener("click",()=>{ open[id]=!open[id]; renderTable(); document.querySelector(`#row-${CSS.escape(id)} .btn`).focus(); });
-      if(open[id]) tb.insertAdjacentHTML("beforeend",`<tr class="guide" id="guide-${id}"><td></td><td colspan="5"><div class="gh">How to do ${id}</div><ol>${steps.map(x=>`<li>${x}</li>`).join("")}</ol></td></tr>`);
-    }
-  }
-  document.getElementById("progress").textContent=`${k} of ${n} tasks done`;
+function renderPanel(){
+  const t=byId[sel], pnl=document.getElementById("panel"), a=ut(t.s), b=ut(t.e), days=idx(b)-idx(a)+1;
+  const deps = t.dep ? t.dep.split(/,\s*/).map(d=>byId[d]?`<button class="deplink" type="button" data-go="${d}">${d}</button>`:`<span class="mono">${d}</span>`).join("") : "None";
+  const v=visible(), i=v.findIndex(x=>x.id===sel);
+  pnl.innerHTML=`<div class="pp">Phase ${t.pn} · ${t.pt}</div>
+    <h3><span class="pid">${t.id}</span>${t.sh}${t.id==="T3.7"?'<span class="tag">optional</span>':""}</h3>
+    <div class="full">${t.task}</div>
+    <dl class="meta">
+      <dt>Owner</dt><dd><span class="owner"><span class="dot" style="background:var(${OWN[t.own][1]})"></span>${OWN[t.own][0]}</span></dd>
+      <dt>Dates</dt><dd class="dates">${a===b?fmt(a):fmt(a)+" – "+fmt(b)} · ${days} day${days>1?"s":""}</dd>
+      <dt>Needs</dt><dd>${deps}</dd>
+      <dt>Done when</dt><dd>${t.check}</dd>
+    </dl>
+    <label class="donebox" for="done-cb"><input type="checkbox" id="done-cb" ${done[t.id]?"checked":""}> Mark ${t.id} as done</label>
+    <div class="gh">How to do it</div>
+    <ol>${t.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
+    <div class="pnav"><button class="btn" type="button" id="prev" ${i<=0?"disabled":""}>← Previous task</button><button class="btn" type="button" id="next" ${i>=v.length-1?"disabled":""}>Next task →</button></div>`;
+  pnl.scrollTop=0;
+  pnl.querySelector("#done-cb").addEventListener("change",e=>{ done[t.id]=e.target.checked; save(); renderGantt(); progress(); });
+  pnl.querySelectorAll("[data-go]").forEach(x=>x.addEventListener("click",()=>select(x.dataset.go)));
+  pnl.querySelector("#prev").addEventListener("click",()=>step(-1));
+  pnl.querySelector("#next").addEventListener("click",()=>step(1));
 }
-function renderAll(){ renderGantt(); renderTable(); }
+function progress(){ const v=visible(); document.getElementById("progress").textContent=`${v.filter(t=>done[t.id]).length} of ${v.length} tasks done`; }
+function step(d,focusRow){ const v=visible(), i=v.findIndex(x=>x.id===sel), n=v[i+d]; if(n) select(n.id,focusRow); }
+function select(id,focusRow){
+  if(!vis(byId[id].own)){ filter="all"; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.f==="all")); }
+  sel=id; renderGantt(); renderPanel(); progress();
+  const row=document.querySelector(`.grow[data-id="${CSS.escape(id)}"]`);
+  if(row){ row.scrollIntoView({block:"nearest",inline:"nearest"}); if(focusRow) row.focus({preventScroll:true}); }
+  if(matchMedia("(max-width:1099px)").matches && !focusRow) document.getElementById("panel").scrollIntoView({block:"start"});
+}
 document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
-  filter=c.dataset.f; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===c)); renderAll(); }));
-renderAll();
+  filter=c.dataset.f; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===c));
+  if(!vis(byId[sel].own)) sel=defaultSel();
+  renderGantt(); renderPanel(); progress(); }));
+sel=defaultSel(); renderGantt(); renderPanel(); progress();
 </script>
 </body>
 </html>
