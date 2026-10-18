@@ -6,7 +6,7 @@
 <title>Smart Kanban Bins Work Plan</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-/* Layout: one column; ASU maroon header band with gold rule, milestones, phase-grouped task table with a Gantt strip per row.
+/* Layout: one column; ASU maroon header band with gold rule, milestones, owner filter, Gantt chart, task table with expandable step guides.
    Palette and type match the official ASU PowerPoint template used for the proposal deck (Arial; maroon 8C1D40, gold FFC627, theme accents). */
 :root{
   --maroon:#8C1D40; --gold:#FFC627; --on-maroon:#FFFFFF;
@@ -17,10 +17,11 @@
   /* pastel card tints from the ASU theme accents */
   --p-gold:#FFF4D1; --p-maroon:#F7E4EA; --p-blue:#E2F4FB; --p-green:#EDF7E2; --p-orange:#FFECDF; --p-grey:#F5F5F5;
   --display:Arial,'Helvetica Neue',Helvetica,sans-serif; --body:Arial,'Helvetica Neue',Helvetica,sans-serif; --mono:Consolas,'Courier New',ui-monospace,monospace;
+  --day:18px; --lab:230px;
   color-scheme:light;
 }
 /* Deliberately light-only: white page in every viewer theme */
-*{box-sizing:border-box}
+*,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
 header{display:flex;flex-direction:column;gap:4px;background:var(--maroon);color:var(--on-maroon);padding:12px 20px 14px;border-radius:8px 8px 0 0;border-bottom:6px solid var(--gold)}
@@ -28,63 +29,102 @@ header .muted{color:var(--on-maroon);opacity:.92;max-width:none;font-size:14px;l
 header .links{font-size:13px}
 header a{color:var(--gold)}
 header .eyebrow{color:var(--gold)}
-h2{color:var(--accent)}
 .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 h1{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.2;margin:0;text-wrap:balance}
-h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0;text-wrap:balance;color:var(--accent)}
 .box h2{color:var(--fg);font-size:17px}
 p{margin:0;max-width:72ch}
 .muted{color:var(--muted)}
-.mono{font-family:var(--mono);font-size:13px}
+.mono,code{font-family:var(--mono);font-size:13px}
+code{background:var(--p-grey);padding:1px 5px;border-radius:4px;word-break:break-word}
 section{display:flex;flex-direction:column;gap:12px}
 /* milestones */
 .ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
 .ms div:nth-child(1){background:var(--p-gold)} .ms div:nth-child(2){background:var(--p-blue)} .ms div:nth-child(3){background:var(--p-green)} .ms div:nth-child(4){background:var(--p-orange)} .ms div:nth-child(5){background:var(--p-maroon)}
-.ms div{border-radius:8px;border:0;padding:7px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ms div{border-radius:8px;padding:7px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .ms b{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--accent)}
 .ms span{font-size:13px;line-height:1.35}
 /* controls */
-.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:5px 12px;border-radius:999px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:8px;z-index:5;border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.controls .lbl{font-size:13px;color:var(--muted)}
+.chip,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:5px 12px;border-radius:999px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .chip[aria-pressed="true"]{background:var(--maroon);border-color:var(--maroon);color:var(--on-maroon)}
-.chip:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chip:focus-visible,.btn:focus-visible,input:focus-visible,.grow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .progress{margin-left:auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* gantt */
+.ganttbox{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.gantt{position:relative;width:calc(var(--lab) + 49 * var(--day));font-size:12.5px}
+.ghead{display:flex;position:relative;z-index:2;background:var(--maroon);color:var(--on-maroon)}
+.ghead .glab{background:var(--maroon);color:var(--on-maroon);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:flex-end;padding:6px 10px}
+.gtrack{position:relative;width:calc(49 * var(--day));flex:none}
+.weeks{height:20px}
+.weeks span{position:absolute;top:3px;font-size:11.5px;white-space:nowrap;padding-left:3px;border-left:1px solid rgba(255,255,255,.45)}
+.days{height:18px;display:flex}
+.days span{width:var(--day);flex:none;text-align:center;font-size:10px;font-family:var(--mono);opacity:.85}
+.days span.we{opacity:.55}
+.mrow{height:22px;background:var(--surface);border-bottom:1px solid var(--line)}
+.mrow .glab{background:var(--surface);color:var(--muted);font-size:12px;padding:3px 10px}
+.mk{position:absolute;top:4px;width:12px;height:12px;background:var(--gold);transform:rotate(45deg);margin-left:3px;border:1px solid var(--maroon)}
+.mk + b{position:absolute;top:3px;font-size:10.5px;color:var(--maroon);white-space:nowrap}
+.mk + b.left{transform:translateX(calc(-100% - var(--day) - 10px))}
+.grow{display:flex;position:relative;z-index:2;height:24px;cursor:pointer;background:transparent}
+.grow:hover .glab{background:var(--p-gold)}
+.glab{width:var(--lab);flex:none;position:sticky;left:0;background:var(--surface);border-right:1px solid var(--line);padding:3px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:3}
+.glab .gid{font-family:var(--mono);color:var(--muted);margin-right:6px}
+.gphase{display:flex;position:relative;z-index:2;height:22px}
+.gphase .glab{background:var(--accent-soft);font-weight:700;border-left:4px solid var(--gold);padding-left:6px}
+.gphase .gtrack{background:rgba(255,244,209,.45)}
+.bar{position:absolute;top:5px;height:14px;border-radius:4px}
+.grow.done .bar{opacity:.35}
+.overlay{position:absolute;left:var(--lab);top:0;bottom:0;width:calc(49 * var(--day));z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 calc(var(--day) - 1px),#F0F0F0 calc(var(--day) - 1px) var(--day))}
+.overlay i{position:absolute;top:0;bottom:0}
+.overlay .we{background:rgba(0,0,0,.035);width:var(--day)}
+.overlay .hol{background:var(--p-orange);width:calc(2 * var(--day))}
+.overlay .ml{width:0;border-left:2px dashed var(--gold)}
+.overlay .today{width:0;border-left:2px solid var(--maroon)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:middle;margin-right:5px}
 /* table */
-.tablebox{overflow-x:auto;border:1px solid var(--line);background:var(--surface)}
-table{border-collapse:collapse;width:100%;min-width:980px;font-size:14px}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:900px;font-size:14px}
 th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
-thead th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--on-maroon);font-weight:700;background:var(--maroon);position:sticky;top:0}
+thead th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--on-maroon);font-weight:700;background:var(--maroon)}
 tr.phase td{background:var(--accent-soft);font-weight:700;color:var(--fg);padding:8px 10px;border-left:4px solid var(--gold)}
 tr.phase .pd{font-family:var(--mono);font-weight:400;font-size:13px;color:var(--muted);margin-left:8px}
 tr.done td:not(.ck){opacity:.5}
 tr.done .task{text-decoration:line-through}
+tr.flash td{background:var(--p-gold);transition:background .6s}
 td.ck{width:28px}
 td.id{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
-.task{font-weight:500}
+.task{font-weight:600}
 .detail{color:var(--muted);font-size:13.5px;margin-top:2px}
+.btn{margin-top:6px;padding:3px 10px;font-size:12.5px;background:var(--p-gold);border-color:#F1DE9A}
+.btn[aria-expanded="true"]{background:var(--maroon);color:var(--on-maroon);border-color:var(--maroon)}
+tr.guide td{background:#FFFCF2;border-left:4px solid var(--gold)}
+tr.guide ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;max-width:95ch;font-size:14px}
+tr.guide .gh{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px}
 .owner{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;font-size:13.5px}
 .dates{font-family:var(--mono);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.gantt{position:relative;height:10px;background:repeating-linear-gradient(90deg,transparent 0 calc(100%/7 - 1px),var(--line) calc(100%/7 - 1px) calc(100%/7));margin-top:6px;border-radius:2px}
-.gantt i{position:absolute;top:0;height:10px;border-radius:2px}
 .dep{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .tag{font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);background:var(--warn-bg);padding:0 6px;border-radius:3px;margin-left:6px;white-space:nowrap}
-/* lists */
+/* cards */
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
 .cols .box:nth-child(6n+1){background:var(--p-gold)} .cols .box:nth-child(6n+2){background:var(--p-blue)} .cols .box:nth-child(6n+3){background:var(--p-green)}
 .cols .box:nth-child(6n+4){background:var(--p-orange)} .cols .box:nth-child(6n+5){background:var(--p-maroon)} .cols .box:nth-child(6n+6){background:var(--p-grey)}
-.skus span{border-radius:6px}
-.box{border-radius:8px;border:0;padding:10px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.box{border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .skus{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
-.skus span{font-family:var(--mono);font-size:13px;border:1px solid var(--line);padding:4px 8px;background:var(--bg)}
+.skus span{font-family:var(--mono);font-size:13px;border:1px solid var(--line);padding:4px 8px;background:var(--bg);border-radius:6px}
 a{color:var(--accent);text-underline-offset:2px}
 .links{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}
 .res dl{margin:0;display:flex;flex-direction:column;gap:7px}
-.res dt{font-weight:500;font-size:14px}
+.res dt{font-weight:600;font-size:14px}
 .res dd{margin:0;color:var(--muted);font-size:13.5px}
 .res dt a{word-break:break-word}
-.note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:10px 14px;font-size:14px}
+.note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:10px 14px;font-size:14px;border-radius:0 8px 8px 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -94,7 +134,7 @@ a{color:var(--accent);text-underline-offset:2px}
 <header>
   <span class="eyebrow">MFG 598 · Group Project · 20 Oct – 4 Dec 2026</span>
   <h1>Simulated Smart Kanban Bins: work plan</h1>
-  <p class="muted">Tasks follow the five milestones in the proposal deck. Each task has one owner, a done check that anyone on the team can verify, and the tasks it depends on. Tick tasks as they finish; ticks are saved in your own browser only.</p>
+  <p class="muted">Tasks follow the five milestones in the proposal deck. Each task has one owner, a done check anyone on the team can verify, its dependencies, and a step-by-step guide (open it with the Guide button, or click a row in the Gantt chart). Ticks are saved in your own browser only.</p>
   <div class="links"><a href="https://github.com/diegobethancourth/smart_kanban_bins">Repository: github.com/diegobethancourth/smart_kanban_bins</a><a href="https://diegobethancourth.github.io/smart_kanban_bins/">This plan online: diegobethancourth.github.io/smart_kanban_bins</a></div>
 </header>
 
@@ -109,22 +149,34 @@ a{color:var(--accent);text-underline-offset:2px}
   </div>
 </section>
 
+<div class="controls" role="group" aria-label="Filter by owner">
+  <span class="lbl">Show tasks for</span>
+  <button class="chip" data-f="all" aria-pressed="true">Everyone</button>
+  <button class="chip" data-f="DB" aria-pressed="false"><span class="dot" style="background:var(--db)"></span>Bethancourth</button>
+  <button class="chip" data-f="DJ" aria-pressed="false"><span class="dot" style="background:var(--dj)"></span>Jaladi</button>
+  <button class="chip" data-f="FR" aria-pressed="false"><span class="dot" style="background:var(--fr)"></span>Rumwaropen</button>
+  <span class="progress" id="progress"></span>
+</div>
+
+<section>
+  <h2>Gantt chart</h2>
+  <div class="legend">
+    <span><i style="background:var(--db)"></i>Bethancourth</span><span><i style="background:var(--dj)"></i>Jaladi</span><span><i style="background:var(--fr)"></i>Rumwaropen</span><span><i style="background:var(--all)"></i>Whole team</span>
+    <span><i style="background:var(--p-orange)"></i>Thanksgiving</span><span><i style="border-left:2px dashed var(--gold);width:2px;border-radius:0"></i>Milestone</span><span><i style="border-left:2px solid var(--maroon);width:2px;border-radius:0"></i>Today</span>
+  </div>
+  <div class="ganttbox"><div class="gantt" id="gantt"></div></div>
+  <p class="muted" style="font-size:13px">One column per day, 17 Oct – 4 Dec. Shaded columns are weekends. Click a row to open that task's guide below.</p>
+</section>
+
 <section>
   <h2>Tasks</h2>
-  <div class="controls" role="group" aria-label="Filter by owner">
-    <button class="chip" data-f="all" aria-pressed="true">Everyone</button>
-    <button class="chip" data-f="DB" aria-pressed="false"><span class="dot" style="background:var(--db)"></span>Bethancourth</button>
-    <button class="chip" data-f="DJ" aria-pressed="false"><span class="dot" style="background:var(--dj)"></span>Jaladi</button>
-    <button class="chip" data-f="FR" aria-pressed="false"><span class="dot" style="background:var(--fr)"></span>Rumwaropen</button>
-    <span class="progress" id="progress"></span>
-  </div>
   <div class="tablebox">
     <table>
-      <thead><tr><th></th><th>ID</th><th style="width:40%">Task and done check</th><th>Owner</th><th>Dates · timeline</th><th>Needs</th></tr></thead>
+      <thead><tr><th></th><th>ID</th><th style="width:48%">Task and done check</th><th>Owner</th><th>Dates</th><th>Needs</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <p class="muted" style="font-size:13px">The bar under each date range shows the task on the 17 Oct – 4 Dec calendar; grid lines mark weeks.</p>
+  <p class="muted" style="font-size:13px">The guides are suggested steps. Adjust them as the work shows a better way, and note any change in <span class="mono">/docs/decisions.md</span>.</p>
 </section>
 
 <section>
@@ -148,8 +200,9 @@ a{color:var(--accent);text-underline-offset:2px}
       <dt><a href="https://git-scm.com/downloads">Git</a></dt><dd>Version control (T0.1, all tasks)</dd>
       <dt><a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a></dt><dd>Runs the whole stack with <span class="mono">docker compose up</span> (T1.1)</dd>
       <dt><a href="https://www.python.org/downloads/">Python 3.11 or later</a></dt><dd>Simulator and data scripts (T1.2, T1.3, Phase 2)</dd>
-      <dt><a href="https://nodered.org/docs/getting-started/">Node-RED</a></dt><dd>Edge gateway (T1.4 onward)</dd>
+      <dt><a href="https://nodered.org/docs/getting-started/">Node-RED</a></dt><dd>Edge gateway (T1.4 onward); runs in Docker, a local install is optional</dd>
       <dt><a href="https://code.visualstudio.com/">Visual Studio Code</a></dt><dd>Suggested editor</dd>
+      <dt><a href="https://obsproject.com/">OBS Studio</a></dt><dd>Screen recording for the backup video (T4.4)</dd>
     </dl></div>
     <div class="box"><h2>Cloud accounts (free tier)</h2><dl>
       <dt><a href="https://console.hivemq.cloud/">HiveMQ Cloud</a></dt><dd>MQTT broker, TLS on port 8883 (T0.2, T1.5)</dd>
@@ -159,7 +212,7 @@ a{color:var(--accent);text-underline-offset:2px}
     <div class="box"><h2>Libraries and Node-RED nodes</h2><dl>
       <dt><a href="https://pymodbus.readthedocs.io/">pymodbus documentation</a></dt><dd>Modbus TCP server for the simulated load cells (T1.2)</dd>
       <dt><a href="https://flows.nodered.org/node/node-red-contrib-modbus">node-red-contrib-modbus</a></dt><dd>Modbus polling in the edge flow (T1.4)</dd>
-      <dt><a href="https://flows.nodered.org/node/node-red-contrib-influxdb">node-red-contrib-influxdb</a></dt><dd>Writes to InfluxDB from Node-RED, if used instead of a bridge (T1.6)</dd>
+      <dt><a href="https://flows.nodered.org/node/node-red-contrib-influxdb">node-red-contrib-influxdb</a></dt><dd>Writes to InfluxDB from Node-RED (T1.6)</dd>
       <dt><a href="https://dashboard.flowfuse.com/">FlowFuse Dashboard for Node-RED</a></dt><dd>The other dashboard option (T2.8)</dd>
     </dl></div>
     <div class="box"><h2>Test tools</h2><dl>
@@ -200,79 +253,267 @@ a{color:var(--accent);text-underline-offset:2px}
 </div>
 
 <script>
-const START = new Date(2026,9,17), END = new Date(2026,11,4);
-const SPAN = (END-START)/864e5 + 1;
+const DAY = 864e5, START = Date.UTC(2026,9,17), NDAYS = 49;
 const OWN = {DB:["Bethancourth","--db"],DJ:["Jaladi","--dj"],FR:["Rumwaropen","--fr"],ALL:["Whole team","--all"]};
+const MILES = [["M1","11-02"],["M2","11-16"],["M3","11-24"],["M4","12-01"],["M5","12-02"]];
+const ut = s => { const [m,d]=s.split("-").map(Number); return Date.UTC(2026,m-1,d); };
+const idx = t => Math.round((t-START)/DAY);
+const fmt = t => new Date(t).toLocaleDateString("en-US",{day:"numeric",month:"short",timeZone:"UTC"});
+const ENV = "<code>.env</code>";
+/* id, short label, task, done check, owner, start, end, needs, guide steps */
 const P = [
  ["0","Kick-off","17 – 19 Oct",[
-  ["T0.1","Invite Febylina and Dhansukh as collaborators on the repository; each member installs the tools listed under Resources","Both invitations accepted; every member has cloned the repository and pushed a test branch","DB","10-17","10-19",""],
-  ["T0.2","Open HiveMQ Cloud and InfluxDB Cloud free accounts and note their limits","Both consoles reachable; limits written in /docs/decisions.md","FR","10-17","10-19",""],
-  ["T0.3","Test outbound port 8883 from campus Wi-Fi and the demo room","Result recorded; fallback chosen if blocked","DJ","10-17","10-19",""]]],
+  ["T0.1","Invite team, install tools","Invite Febylina and Dhansukh as collaborators on the repository; each member installs the tools listed under Resources","Both invitations accepted; every member has cloned the repository and pushed a test branch","DB","10-17","10-19","",[
+   "Diego: on GitHub open the repository, then <b>Settings → Collaborators → Add people</b>, and invite each teammate by GitHub username or email.",
+   "Each member accepts the invitation from the email or from <a href='https://github.com/notifications'>github.com/notifications</a>.",
+   "Each member installs Git, Docker Desktop, Python 3.11 or later and VS Code (links under Resources).",
+   "Set your Git identity with the email linked to your GitHub account: <code>git config --global user.name \"Your Name\"</code> and <code>git config --global user.email you@example.com</code>.",
+   "Clone: <code>git clone https://github.com/diegobethancourth/smart_kanban_bins.git</code>",
+   "Test a branch: <code>git checkout -b test/yourname</code>, <code>git commit --allow-empty -m \"Test branch\"</code>, <code>git push -u origin test/yourname</code>. Then delete the branch on GitHub."]],
+  ["T0.2","Cloud accounts and limits","Open HiveMQ Cloud and InfluxDB Cloud free accounts and note their limits","Both consoles reachable; limits written in /docs/decisions.md","FR","10-17","10-19","",[
+   "Sign up at <a href='https://console.hivemq.cloud/'>console.hivemq.cloud</a> and create a free (Serverless) cluster.",
+   "Copy the cluster host name from the cluster overview. Note the TLS port 8883 and the WebSocket TLS port shown in the console.",
+   "Under <b>Access Management</b>, create two sets of credentials: one for the edge gateway and one for the team's test tools.",
+   "Sign up at <a href='https://cloud2.influxdata.com/signup'>InfluxDB Cloud</a> (free plan), create a bucket named <code>smart_kanban</code>, and create an API token with read and write access to that bucket. Note the organisation name and region URL.",
+   "Write each plan's limits (connections, messages or writes, data retention) in <code>/docs/decisions.md</code>.",
+   "Put host names, users, passwords and the token in a "+ENV+" file and send it to the team privately. Never commit it."]],
+  ["T0.3","Port 8883 test","Test outbound port 8883 from campus Wi-Fi and the demo room","Result recorded; fallback chosen if blocked","DJ","10-17","10-19","",[
+   "Install <a href='https://mqtt-explorer.com/'>MQTT Explorer</a>.",
+   "On campus Wi-Fi, connect to the HiveMQ host on port 8883 with TLS on and the test credentials from T0.2.",
+   "A quick check without credentials: on Windows run <code>Test-NetConnection &lt;host&gt; -Port 8883</code> in PowerShell; on macOS or Linux run <code>openssl s_client -connect &lt;host&gt;:8883</code>. A certificate in the output means the port is open.",
+   "Repeat in the demo room if you can, and on a phone hotspot.",
+   "If 8883 is blocked, try MQTT over secure WebSockets on the port shown in the HiveMQ console.",
+   "Write the result and the chosen fallback in <code>/docs/decisions.md</code>."]]]],
  ["1","Single bin end to end","20 Oct – 2 Nov · M1",[
-  ["T1.1","Repository skeleton: /simulator, /edge, /cloud, /dashboard, /data, /docs, docker-compose.yml, .env.example, .gitignore","<span class='mono'>docker compose up</span> starts all services with no errors","FR","10-20","10-23","T0.1"],
-  ["T1.2","pymodbus TCP server for one bin: 40001–40002 net weight in grams (32-bit unsigned), 40003 status (0 OK, 1 fault)","A Modbus client tool reads a changing weight from the simulator","DB","10-20","10-25","T1.1"],
-  ["T1.3","Extract and anonymise SALMI series for the six shortlisted items at one facility with complete reports","One CSV per item in /data (date, stock); facility shown as UE-A","DB","10-20","10-30",""],
-  ["T1.4","Node-RED flow: poll the bin every second and decode the 32-bit register","Node-RED debug panel shows grams equal to the simulator value","DJ","10-24","10-28","T1.2"],
-  ["T1.5","Connect the edge to HiveMQ Cloud over TLS on 8883; publish css/{ue}/bins/{bin_id}/level (QoS 1, retained)","An MQTT client subscribed from another network sees the messages","DJ","10-26","10-30","T0.2, T0.3, T1.4"],
-  ["T1.6","Write MQTT messages to an InfluxDB Cloud bucket and draw a first graph","Graph of one bin's weight over at least 10 minutes in Data Explorer","FR","10-27","11-02","T1.5"]]],
+  ["T1.1","Repository skeleton","Repository skeleton: /simulator, /edge, /cloud, /dashboard, /data, /docs, docker-compose.yml, .env.example","<code>docker compose up</code> starts all services with no errors","FR","10-20","10-23","T0.1",[
+   "Create a branch: <code>git checkout -b feat/skeleton</code>.",
+   "Create the folders <code>simulator/ edge/ cloud/ dashboard/ data/</code>, each with a short <code>README.md</code> (Git does not track empty folders).",
+   "Write <code>docker-compose.yml</code> with two services: <code>simulator</code> (built from <code>./simulator</code>, Python 3.11 image) and <code>edge</code> (image <code>nodered/node-red</code>, port 1880, volume <code>./edge:/data</code>). Both read <code>env_file: .env</code>. The broker and database are cloud services, so they need no containers.",
+   "Write <code>.env.example</code> with variable names only: <code>MQTT_HOST, MQTT_PORT=8883, MQTT_USER, MQTT_PASS, INFLUX_URL, INFLUX_ORG, INFLUX_BUCKET, INFLUX_TOKEN</code>.",
+   "Run <code>docker compose up --build</code> and open <a href='http://localhost:1880'>localhost:1880</a> to see Node-RED.",
+   "Open a pull request and ask another member to review it."]],
+  ["T1.2","Simulator, one bin","pymodbus TCP server for one bin: 40001–40002 net weight in grams (32-bit unsigned), 40003 status (0 OK, 1 fault)","A Modbus client tool reads a changing weight from the simulator","DB","10-20","10-25","T1.1",[
+   "Add <code>pymodbus</code> to <code>simulator/requirements.txt</code> with a fixed version, and install it.",
+   "In <code>simulator/server.py</code>, start a Modbus TCP server on <code>0.0.0.0:5020</code> with a holding-register data block (port 5020 avoids needing administrator rights for port 502).",
+   "Register map: addresses 0–1 (40001–40002) hold the net weight in grams as an unsigned 32-bit value, high word first; address 2 (40003) holds the status, 0 OK and 1 fault.",
+   "Every second, subtract a small random dispense from the weight and write the registers.",
+   "Test from another terminal: <code>modpoll -m tcp -p 5020 -r 1 -c 3 localhost</code> (modpoll counts registers from 1).",
+   "Add <code>simulator/Dockerfile</code> and document the map and word order in <code>docs/register_map.md</code>."]],
+  ["T1.3","Extract SALMI series","Extract and anonymise SALMI series for the six shortlisted items at one facility with complete reports","One CSV per item in /data (date, stock); facility shown as UE-A","DB","10-20","10-30","",[
+   "Work outside the repository folder: load the <code>series_saldos</code> JSON files from REPOSICION_UE_CSS.",
+   "Choose one facility that has reports on most of the 91 dates for all six shortlisted items.",
+   "Keep only the report date and stock for each item. Replace the facility code with <code>UE-A</code>.",
+   "Save one file per item as <code>data/&lt;item&gt;.csv</code> with columns <code>date,stock</code>.",
+   "Check that the files contain no facility names, supplier details or internal paths, and that each row count matches the report dates.",
+   "Commit only the CSV files. Keep the extraction script outside the public repository if it shows internal paths."]],
+  ["T1.4","Node-RED Modbus poll","Node-RED flow: poll the bin every second and decode the 32-bit register","Node-RED debug panel shows grams equal to the simulator value","DJ","10-24","10-28","T1.2",[
+   "Open Node-RED at <a href='http://localhost:1880'>localhost:1880</a>. Menu → <b>Manage palette</b> → Install → <code>node-red-contrib-modbus</code>.",
+   "Add a <b>Modbus-Read</b> node: TCP server host <code>simulator</code> (the Docker service name), port 5020, unit ID 1, function code 3 (holding registers), address 0, quantity 3, poll every 1 s.",
+   "Add a Function node: <code>const p = msg.payload; msg.payload = {grams: p[0]*65536 + p[1], status: p[2]}; return msg;</code>",
+   "Add a Debug node and compare the grams with the simulator log.",
+   "Node-RED saves flows to <code>edge/flows.json</code> through the volume. Commit that file on a branch and open a pull request."]],
+  ["T1.5","Edge → HiveMQ over TLS","Connect the edge to HiveMQ Cloud over TLS on 8883; publish css/{ue}/bins/{bin_id}/level (QoS 1, retained)","An MQTT client subscribed from another network sees the messages","DJ","10-26","10-30","T0.2, T0.3, T1.4",[
+   "Add an <b>mqtt out</b> node and create a broker configuration: server = the HiveMQ host, port 8883, <b>Use TLS</b> on, protocol MQTT V5.",
+   "Fill the user name and password with <code>${MQTT_USER}</code> and <code>${MQTT_PASS}</code>; Node-RED reads them from the container environment, which loads "+ENV+".",
+   "Topic <code>css/UE-A/bins/bin01/level</code>, QoS 1, retain on.",
+   "Payload as JSON: <code>{ts, bin_id, grams, status}</code>, with <code>ts</code> as an ISO timestamp set at the edge.",
+   "Ask a teammate on another network to subscribe to <code>css/#</code> in MQTT Explorer and confirm the messages arrive."]],
+  ["T1.6","Write to InfluxDB, first graph","Write MQTT messages to an InfluxDB Cloud bucket and draw a first graph","Graph of one bin's weight over at least 10 minutes in Data Explorer","FR","10-27","11-02","T1.5",[
+   "In Node-RED, install <code>node-red-contrib-influxdb</code> from Manage palette.",
+   "Add an <b>influxdb out</b> node: version 2.0, URL, organisation, bucket <code>smart_kanban</code> and token, all from "+ENV+".",
+   "Write measurement <code>level</code> with field <code>grams</code> and tags <code>ue</code> and <code>bin_id</code>. Use the message timestamp, not the arrival time.",
+   "Let it run for at least 10 minutes.",
+   "In InfluxDB Cloud open <b>Data Explorer</b>, select the bucket and the measurement, and plot <code>grams</code>.",
+   "Save a screenshot in <code>docs/</code>. Milestone M1 is reached."]]]],
  ["2","Six bins and the P-240 rule","3 – 16 Nov · M2",[
-  ["T2.1","Bin configuration file: item code, unit weight, units per box, tare m0, capacity, vital flag, d̄ and σ_d","bins.yaml loads in the simulator and the edge; every value has a source or is marked as a simulation parameter","DB","11-03","11-05","T1.3"],
-  ["T2.2","Replay engine: hold stock at each report date, fill the days between with Poisson-like consumption, compress time (one day = N seconds)","Replayed stock equals the SALMI value on every report date","DB","11-04","11-10","T2.1"],
-  ["T2.3","Extend the simulator to six bins (one unit ID or register block per bin)","Edge reads six independent weights","DB","11-09","11-11","T2.2"],
-  ["T2.4","Edge processing: n = ⌊(m − m0)/m_u⌋, deadband, heartbeat publish","Unit counts match the simulator; no publish for changes inside the deadband except the heartbeat","DJ","11-05","11-11","T1.5, T2.1"],
-  ["T2.5","P-240 function: SS = z·σ_d·√L, ROP = d̄·L + SS, L = 20, z = 1.65 vital / 1.28 other; publish css/{ue}/bins/{bin_id}/reorder with hysteresis","Unit test: ROP equals reposicion_ue.html for the same items within rounding; one event per crossing","DB","11-09","11-13","T2.1"],
-  ["T2.6","Integrate P-240 into the Node-RED flow","Reorder events appear on the broker during a replay","DJ","11-12","11-14","T2.4, T2.5"],
-  ["T2.7","InfluxDB schema: measurements level and reorder; tags ue, bin_id, item","Both measurements receive data from six bins","FR","11-05","11-09","T1.6"],
-  ["T2.8","Choose the dashboard tool (Grafana or Node-RED Dashboard) and build a first draft","Decision recorded; draft shows six stock lines","FR","11-09","11-16","T2.7"]]],
+  ["T2.1","Bin configuration file","Bin configuration file: item code, unit weight, units per box, tare m0, capacity, vital flag, d̄ and σ_d","bins.yaml loads in the simulator and the edge; every value has a source or is marked as a simulation parameter","DB","11-03","11-05","T1.3",[
+   "Create <code>config/bins.yaml</code> with one entry per bin, <code>bin01</code> to <code>bin06</code>, each with its item code.",
+   "Take the unit weight in grams from the shortlist workbook; where it is missing, set a plausible value and mark it <code>source: sim_param</code>.",
+   "Add units per box, tare (empty bin weight, m0), capacity in units, and the vital flag (from the item dictionary used by reposicion_ue.html).",
+   "Compute d̄ and σ_d (mean and standard deviation of daily consumption) from the CSV series.",
+   "Generate <code>config/bins.json</code> from the YAML so Node-RED can read the same values.",
+   "Add a small check script that fails if any field is empty."]],
+  ["T2.2","Replay engine","Replay engine: hold stock at each report date, fill the days between with Poisson-like consumption, compress time (one day = N seconds)","Replayed stock equals the SALMI value on every report date","DB","11-04","11-10","T2.1",[
+   "For each pair of consecutive report dates, the consumption is the drop in stock. An increase is a receipt and appears as a step up on the report date.",
+   "Spread the drop over the days in between: draw daily Poisson values with mean = drop / days, then rescale so they add up exactly to the drop.",
+   "Split each day into a few dispense events at random times.",
+   "Time compression from an environment variable, for example <code>SIM_SECONDS_PER_DAY=10</code> (131 days ≈ 22 minutes).",
+   "Convert units to grams: <code>tare + units × unit_g</code>, and write the registers.",
+   "Add a test that checks the simulated stock against the SALMI value on every report date."]],
+  ["T2.3","Six bins","Extend the simulator to six bins (one unit ID or register block per bin)","Edge reads six independent weights","DB","11-09","11-11","T2.2",[
+   "Give each bin its own Modbus unit ID, 1 to 6, all with the same register map.",
+   "Run the six replays in one asyncio loop.",
+   "Tell Dhansukh the unit IDs, so the edge can read each bin with its own Modbus-Read node.",
+   "Check with modpoll (<code>-a 1</code> to <code>-a 6</code>) that the six weights change independently."]],
+  ["T2.4","Edge: units, deadband, heartbeat","Edge processing: n = ⌊(m − m0)/m_u⌋, deadband, heartbeat publish","Unit counts match the simulator; no publish for changes inside the deadband except the heartbeat","DJ","11-05","11-11","T1.5, T2.1",[
+   "Load <code>config/bins.json</code> into flow context when the flow starts.",
+   "Function node per bin: <code>units = Math.floor((grams - tare) / unit_g)</code>.",
+   "Deadband: publish only if the unit count changed by at least the configured step since the last publish (keep the last value in node context).",
+   "Heartbeat: publish anyway every 60 seconds so the dashboard shows the bin is alive.",
+   "Test with Inject nodes that send known gram values."]],
+  ["T2.5","P-240 function","P-240 function: SS = z·σ_d·√L, ROP = d̄·L + SS, L = 20, z = 1.65 vital / 1.28 other; publish reorder with hysteresis","Unit test: ROP equals reposicion_ue.html for the same items within rounding; one event per crossing","DB","11-09","11-13","T2.1",[
+   "Write the rule as one plain JavaScript function in <code>edge/lib/p240.js</code>: <code>SS = z·σ_d·√L</code>, <code>ROP = d̄·L + SS</code>, L = 20 days, z = 1.65 for vital items and 1.28 for the rest.",
+   "Compute d̄ and σ_d over the same window that reposicion_ue.html uses, so the results can be compared.",
+   "Unit test: for each shortlisted item, compare your ROP with the value the CSS dashboard shows; the difference must be rounding only.",
+   "Hysteresis: send an event when units fall to or below ROP and the bin is armed; re-arm only after units rise above ROP plus a margin (for example 10% of ROP, after a refill).",
+   "Event payload: <code>{ts, bin_id, item, units, rop, ss}</code>."]],
+  ["T2.6","Integrate P-240 at the edge","Integrate P-240 into the Node-RED flow","Reorder events appear on the broker during a replay","DJ","11-12","11-14","T2.4, T2.5",[
+   "Load <code>p240.js</code> in a Function node (or paste it as a shared function) after the units conversion.",
+   "Add an mqtt out node with topic <code>css/UE-A/bins/{bin_id}/reorder</code>, QoS 1, retain off.",
+   "Run a full replay and watch <code>css/+/bins/+/reorder</code> in MQTT Explorer.",
+   "Check that each crossing gives exactly one event."]],
+  ["T2.7","InfluxDB schema","InfluxDB schema: measurements level and reorder; tags ue, bin_id, item","Both measurements receive data from six bins","FR","11-05","11-09","T1.6",[
+   "Measurement <code>level</code>: fields <code>units, grams, status</code>; tags <code>ue, bin_id, item</code>.",
+   "Measurement <code>reorder</code>: fields <code>units, rop, ss</code>; same tags.",
+   "Write the schema in <code>docs/schema.md</code>.",
+   "Confirm in Data Explorer that all six bins write to both measurements."]],
+  ["T2.8","Dashboard tool and draft","Choose the dashboard tool (Grafana or Node-RED Dashboard) and build a first draft","Decision recorded; draft shows six stock lines","FR","11-09","11-16","T2.7",[
+   "Compare Grafana Cloud (reads InfluxDB directly, needs one more account) with FlowFuse Dashboard (runs inside Node-RED, no extra account).",
+   "Criteria: can it draw the ROP line over the stock line, show an events table, and be set up in the time left?",
+   "Record the choice and the reason in <code>/docs/decisions.md</code>.",
+   "Build a draft with six stock lines, one per bin. Milestone M2 is reached."]]]],
  ["3","Faults, buffering, dashboard, analysis","17 – 24 Nov · M3",[
-  ["T3.1","Fault injection in the simulator: noise, drift, stuck sensor; set 40003 = 1 when faulted","Each fault can be switched on from the config and is visible in the data","DB","11-17","11-19","T2.3"],
-  ["T3.2","Edge fault handling: detect a stuck reading and status = 1; flag rather than reorder","A stuck bin raises a status flag and produces no false reorder","DJ","11-18","11-20","T3.1, T2.6"],
-  ["T3.3","Store-and-forward: buffer messages while the broker is unreachable and send them in order on reconnect","Unplug the network for 5 minutes: no gap in the stored data","DJ","11-17","11-21","T2.6"],
-  ["T3.4","Last will on css/{ue}/edge/{gw_id}/status","Stopping the edge sets status to offline within the keep-alive time","DJ","11-20","11-21","T1.5"],
-  ["T3.5","Final dashboard: sawtooth stock curve per bin with ROP line, reorder events table, gateway status","All three panels visible on one screen during a replay","FR","11-17","11-23","T2.8, T2.6"],
-  ["T3.6","Detection-latency analysis: sensed ROP crossing time vs the report date on which the same crossing appeared","Table and histogram per item in /docs; method and limits written","DB","11-18","11-24","T2.6"],
-  ["T3.7","Optional: emit a GS1 EPCIS ObjectEvent (JSON) for each reorder event","Example event validates against the EPCIS 2.0 schema","FR","11-21","11-24","T2.6"]]],
+  ["T3.1","Fault injection","Fault injection in the simulator: noise, drift, stuck sensor; set 40003 = 1 for a reported fault","Each fault can be switched on from the config and is visible in the data","DB","11-17","11-19","T2.3",[
+   "Add per-bin fault settings to <code>bins.yaml</code>: noise (standard deviation in grams), drift (grams per day), stuck (from a given time) and hard fault.",
+   "Noise and drift change the grams written to the register.",
+   "Stuck freezes the register value but leaves status at 0; detecting it is the edge's job (T3.2).",
+   "Hard fault sets 40003 = 1.",
+   "Show each fault in a short test run and save a plot."]],
+  ["T3.2","Edge fault handling","Edge fault handling: detect a stuck reading and status = 1; flag rather than reorder","A stuck bin raises a status flag and produces no false reorder","DJ","11-18","11-20","T3.1, T2.6",[
+   "Treat status = 1 from the register as a fault.",
+   "Stuck detection: if the value has not changed for N polls while the expected consumption (from d̄) says it should, flag the bin as stuck.",
+   "While a bin is flagged, suppress its reorder events and publish its status.",
+   "Test with the stuck and hard-fault settings from T3.1."]],
+  ["T3.3","Store-and-forward","Store-and-forward: buffer messages while the broker is unreachable and send them in order on reconnect","Unplug the network for 5 minutes: no gap in the stored data","DJ","11-17","11-21","T2.6",[
+   "Use a Status node on the mqtt out node to know when the broker connection is down.",
+   "While down, push each message into a queue kept in persistent context storage (enable the <code>localfilesystem</code> context store in Node-RED settings) so it survives a restart.",
+   "On reconnect, send the queued messages in order before new ones.",
+   "Every message carries its edge timestamp, and the database write uses it, so late messages land at the right time.",
+   "Test: disconnect the network for 5 minutes during a replay, reconnect, and check the graph has no gap."]],
+  ["T3.4","Last will","Last will on css/{ue}/edge/{gw_id}/status","Stopping the edge sets status to offline within the keep-alive time","DJ","11-20","11-21","T1.5",[
+   "In the broker configuration, set a birth message: topic <code>css/UE-A/edge/gw01/status</code>, payload <code>online</code>, retained.",
+   "Set the will message on the same topic: payload <code>offline</code>, QoS 1, retained. Keep-alive 30 s.",
+   "Test: <code>docker compose stop edge</code> and watch the topic change to <code>offline</code> in MQTT Explorer."]],
+  ["T3.5","Final dashboard","Final dashboard: sawtooth stock curve per bin with ROP line, reorder events table, gateway status","All three panels visible on one screen during a replay","FR","11-17","11-23","T2.8, T2.6",[
+   "One panel per bin: stock in units over time, with the ROP as a horizontal line.",
+   "An events table from the <code>reorder</code> measurement: time, bin, item, units, ROP.",
+   "A gateway status indicator from the last-will topic or the latest heartbeat.",
+   "Use the ASU colours (maroon and gold) to match the deck.",
+   "Save screenshots in <code>docs/</code> for the README."]],
+  ["T3.6","Detection-latency analysis","Detection-latency analysis: sensed ROP crossing time vs the report date on which the same crossing appeared","Table and histogram per item in /docs; method and limits written","DB","11-18","11-24","T2.6",[
+   "Export the reorder events from InfluxDB (CSV from Data Explorer).",
+   "For each event, find the first report date on which the SALMI stock is at or below the same ROP.",
+   "Latency = that report date minus the sensed event time, in days.",
+   "Make a table and a histogram per item (Python, matplotlib) and save them in <code>docs/latency.md</code>.",
+   "Write the limit clearly: the sensed time comes from simulated consumption between reports, so the result is model-based. Milestone M3 is reached."]],
+  ["T3.7","EPCIS events (optional)","Optional: emit a GS1 EPCIS ObjectEvent (JSON) for each reorder event","Example event validates against the EPCIS 2.0 schema","FR","11-21","11-24","T2.6",[
+   "Read the EPCIS 2.0 JSON examples on the <a href='https://ref.gs1.org/standards/epcis/'>GS1 EPCIS page</a>.",
+   "Map one reorder event to an ObjectEvent: event time, action <code>OBSERVE</code>, the item as a quantity, the bin as the read point.",
+   "Generate it in a Function node and publish it on its own topic.",
+   "Validate one example against the EPCIS 2.0 JSON schema and save it in <code>docs/</code>."]]]],
  ["4","Freeze and rehearse","25 Nov – 1 Dec · M4",[
-  ["T4.1","Code freeze: bug fixes only after this date","Tag v1.0 on main","ALL","11-25","11-25","M3"],
-  ["T4.2","README: summary of up to 200 words, architecture figure, reproduction steps, screenshots","A member who did not write it reproduces the demo from a clean clone","FR","11-25","11-30","T4.1"],
-  ["T4.3","Privacy and quality pass: comments in all modules, no credentials or facility names in files or git history","Checklist signed off by all three members","DB","11-25","11-30","T4.1"],
-  ["T4.4","Record the backup video of the full demo (5–7 min)","Video file uploaded to the team drive","DJ","11-28","11-30","T4.1"],
-  ["T4.5","Demo script and two timed rehearsals with one presenter","Both runs end within 5–7 minutes","ALL","11-29","12-01","T4.4"]]],
+  ["T4.1","Code freeze","Code freeze: bug fixes only after this date","Tag v1.0 on main","ALL","11-25","11-25","M3",[
+   "Merge all open feature pull requests or move them to after the demo.",
+   "Tag the release: <code>git tag v1.0</code> then <code>git push origin v1.0</code>.",
+   "From now on, only bug-fix pull requests, each reviewed."]],
+  ["T4.2","README","README: summary of up to 200 words, architecture figure, reproduction steps, screenshots","A member who did not write it reproduces the demo from a clean clone","FR","11-25","11-30","T4.1",[
+   "Write the summary (200 words or fewer), the architecture figure from the deck, the folder layout and the reproduction steps.",
+   "Reproduction: clone, copy <code>.env.example</code> to "+ENV+" and fill it in, run <code>docker compose up --build</code>, open the dashboard.",
+   "Add the dashboard screenshots and the latency result, with its limits.",
+   "Ask a member who did not write it to follow the README on a clean clone, and fix every gap they hit."]],
+  ["T4.3","Privacy and quality pass","Privacy and quality pass: comments in all modules, no credentials or facility names in files or git history","Checklist signed off by all three members","DB","11-25","11-30","T4.1",[
+   "Search the files: <code>git grep -n -i -E \"password|token|secret|hivemq.cloud|influxdata\"</code>, plus the real facility names.",
+   "Search the history as well: <code>git log -p | grep -i -E \"password|token\"</code>.",
+   "If a secret was ever committed, change that password or token in the service console straight away. Removing it from the history is not enough.",
+   "Check every module has a header comment and comments on non-obvious steps.",
+   "All three members tick the checklist in <code>docs/checklist.md</code>."]],
+  ["T4.4","Backup video","Record the backup video of the full demo (5–7 min)","Video file uploaded to the team drive","DJ","11-28","11-30","T4.1",[
+   "Run the frozen build (tag v1.0).",
+   "Record with <a href='https://obsproject.com/'>OBS Studio</a>: simulator running, edge flow, a reorder event arriving, the dashboard, the fault and reconnect demonstration.",
+   "Keep it between 5 and 7 minutes, following the demo script.",
+   "Upload it to the team drive and test that it plays on the demo computer."]],
+  ["T4.5","Demo script and rehearsals","Demo script and two timed rehearsals with one presenter","Both runs end within 5–7 minutes","ALL","11-29","12-01","T4.4",[
+   "Write the script: what is shown, in which order, and what is said at each step.",
+   "Choose the presenter.",
+   "Rehearse twice with a timer, on the network you will use in class.",
+   "Agree the signal for switching to the backup video if the live demo fails. Milestone M4 is reached."]]]],
  ["5","Deliver","2 Dec · 4 Dec · M5",[
-  ["T5.1","Live demonstration in class","Delivered within 5–7 minutes","ALL","12-02","12-02","T4.5"],
-  ["T5.2","Final check of the public repository and submit the link","Link submitted on Canvas; a clean clone runs from the README alone","FR","12-03","12-04","T4.2, T4.3"]]]
+  ["T5.1","Live demonstration","Live demonstration in class","Delivered within 5–7 minutes","ALL","12-02","12-02","T4.5",[
+   "Arrive early, connect to the room network and check port 8883 (or the fallback).",
+   "Start the stack 15 minutes before and confirm data reaches the dashboard.",
+   "Have the backup video open and ready."]],
+  ["T5.2","Final repo check, submit","Final check of the public repository and submit the link","Link submitted on Canvas; a clean clone runs from the README alone","FR","12-03","12-04","T4.2, T4.3",[
+   "Clone the repository into a new folder and follow the README once more.",
+   "Confirm the work plan page and the README load without signing in.",
+   "Submit the repository link on Canvas."]]]]
 ];
-const d = s => { const [m,dd]=s.split("-").map(Number); return new Date(2026,m-1,dd); };
-const fmt = x => x.toLocaleDateString("en-US",{day:"numeric",month:"short"});
-let done = {}; try{ done = JSON.parse(localStorage.getItem("skb-done")||"{}"); }catch(e){}
-let filter = "all";
-function render(){
-  const tb = document.getElementById("rows"); tb.innerHTML = "";
-  let n=0, k=0;
+let done={}, open={}; try{ done = JSON.parse(localStorage.getItem("skb-done")||"{}"); }catch(e){}
+let filter="all";
+const vis = o => filter==="all" || o===filter || o==="ALL";
+
+function renderGantt(){
+  const g=document.getElementById("gantt"); g.innerHTML="";
+  let wk="", dy="";
+  for(let i=0;i<NDAYS;i++){
+    const t=START+i*DAY, d=new Date(t), w=d.getUTCDay();
+    if(w===1) wk+=`<span style="left:calc(${i} * var(--day))">Week of ${fmt(t)}</span>`;
+    dy+=`<span class="${w===0||w===6?"we":""}">${d.getUTCDate()}</span>`;
+  }
+  let ov="";
+  for(let i=0;i<NDAYS;i++){ const w=new Date(START+i*DAY).getUTCDay(); if(w===0||w===6) ov+=`<i class="we" style="left:calc(${i} * var(--day))"></i>`; }
+  ov+=`<i class="hol" style="left:calc(${idx(ut("11-26"))} * var(--day))"></i>`;
+  MILES.forEach(([m,s])=>{ ov+=`<i class="ml" style="left:calc(${idx(ut(s))+.5} * var(--day))"></i>`; });
+  const now=Date.now(), ti=(now-START)/DAY; if(ti>=0&&ti<NDAYS) ov+=`<i class="today" style="left:calc(${ti} * var(--day))"></i>`;
+  let mk=MILES.map(([m,s])=>`<i class="mk" style="left:calc(${idx(ut(s))} * var(--day))"></i><b class="${m==="M4"?"left":""}" style="left:calc(${idx(ut(s))+1} * var(--day) + 4px)">${m}</b>`).join("");
+  let html=`<div class="overlay">${ov}</div>
+   <div class="ghead"><div class="glab" style="height:38px">Task</div><div class="gtrack"><div class="weeks">${wk}</div><div class="days">${dy}</div></div></div>
+   <div class="ghead mrow"><div class="glab">Milestones</div><div class="gtrack">${mk}</div></div>`;
   for(const [pn,pt,pd,tasks] of P){
-    const vis = tasks.filter(t => filter==="all" || t[3]===filter || t[3]==="ALL");
-    if(!vis.length) continue;
-    tb.insertAdjacentHTML("beforeend",`<tr class="phase"><td colspan="6">Phase ${pn} · ${pt}<span class="pd">${pd}</span></td></tr>`);
-    for(const [id,task,check,own,s,e,dep] of vis){
-      n++; if(done[id]) k++;
-      const a=d(s), b=d(e), L=((a-START)/864e5)/SPAN*100, W=((b-a)/864e5+1)/SPAN*100;
-      const opt = id==="T3.7" ? '<span class="tag">optional</span>' : "";
-      tb.insertAdjacentHTML("beforeend",`<tr class="${done[id]?"done":""}">
-        <td class="ck"><input type="checkbox" id="ck-${id}" aria-label="Mark ${id} done" ${done[id]?"checked":""}></td>
-        <td class="id">${id}</td>
-        <td><div class="task">${task}${opt}</div><div class="detail">Done when: ${check}</div></td>
-        <td><span class="owner"><span class="dot" style="background:var(${OWN[own][1]})"></span>${OWN[own][0]}</span></td>
-        <td><div class="dates">${a.getTime()===b.getTime()?fmt(a):fmt(a)+" – "+fmt(b)}</div><div class="gantt" style="width:220px"><i style="left:${L}%;width:${W}%;background:var(${OWN[own][1]})"></i></div></td>
-        <td class="dep">${dep||"—"}</td></tr>`);
-      tb.lastElementChild.querySelector("input").addEventListener("change", ev => {
-        done[id]=ev.target.checked; try{ localStorage.setItem("skb-done",JSON.stringify(done)); }catch(e){} render(); });
+    const v=tasks.filter(t=>vis(t[4])); if(!v.length) continue;
+    html+=`<div class="gphase"><div class="glab">Phase ${pn} · ${pt}</div><div class="gtrack"></div></div>`;
+    for(const [id,sh,,,own,s,e] of v){
+      const a=idx(ut(s)), b=idx(ut(e));
+      html+=`<div class="grow ${done[id]?"done":""}" tabindex="0" data-id="${id}" title="${id} · ${sh} · ${fmt(ut(s))} – ${fmt(ut(e))} · ${OWN[own][0]}">
+        <div class="glab"><span class="gid">${id}</span>${sh}</div>
+        <div class="gtrack"><i class="bar" style="left:calc(${a} * var(--day) + 1px);width:calc(${b-a+1} * var(--day) - 2px);background:var(${OWN[own][1]})"></i></div></div>`;
     }
   }
-  document.getElementById("progress").textContent = `${k} of ${n} tasks done`;
+  g.innerHTML=html;
+  g.querySelectorAll(".grow").forEach(r=>{
+    const go=()=>{ const id=r.dataset.id; open[id]=true; renderTable();
+      const tr=document.getElementById("row-"+id); if(tr){ tr.scrollIntoView({block:"center",behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"}); tr.classList.add("flash"); setTimeout(()=>tr.classList.remove("flash"),1200);} };
+    r.addEventListener("click",go); r.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+  });
 }
-document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
-  filter = c.dataset.f; document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x===c)); render(); }));
-render();
+function renderTable(){
+  const tb=document.getElementById("rows"); tb.innerHTML="";
+  let n=0,k=0;
+  for(const [pn,pt,pd,tasks] of P){
+    const v=tasks.filter(t=>vis(t[4])); if(!v.length) continue;
+    tb.insertAdjacentHTML("beforeend",`<tr class="phase"><td colspan="6">Phase ${pn} · ${pt}<span class="pd">${pd}</span></td></tr>`);
+    for(const [id,sh,task,check,own,s,e,dep,steps] of v){
+      n++; if(done[id]) k++;
+      const a=ut(s), b=ut(e), opt=id==="T3.7"?'<span class="tag">optional</span>':"";
+      tb.insertAdjacentHTML("beforeend",`<tr id="row-${id}" class="${done[id]?"done":""}">
+        <td class="ck"><input type="checkbox" id="ck-${id}" aria-label="Mark ${id} done" ${done[id]?"checked":""}></td>
+        <td class="id">${id}</td>
+        <td><div class="task">${task}${opt}</div><div class="detail">Done when: ${check}</div>
+            <button class="btn" type="button" aria-expanded="${!!open[id]}" aria-controls="guide-${id}">${open[id]?"Hide guide":"Guide · "+steps.length+" steps"}</button></td>
+        <td><span class="owner"><span class="dot" style="background:var(${OWN[own][1]})"></span>${OWN[own][0]}</span></td>
+        <td class="dates">${a===b?fmt(a):fmt(a)+" – "+fmt(b)}</td>
+        <td class="dep">${dep||"—"}</td></tr>`);
+      const row=tb.lastElementChild;
+      row.querySelector("input").addEventListener("change",ev=>{ done[id]=ev.target.checked; try{ localStorage.setItem("skb-done",JSON.stringify(done)); }catch(e){} renderAll(); });
+      row.querySelector(".btn").addEventListener("click",()=>{ open[id]=!open[id]; renderTable(); document.querySelector(`#row-${CSS.escape(id)} .btn`).focus(); });
+      if(open[id]) tb.insertAdjacentHTML("beforeend",`<tr class="guide" id="guide-${id}"><td></td><td colspan="5"><div class="gh">How to do ${id}</div><ol>${steps.map(x=>`<li>${x}</li>`).join("")}</ol></td></tr>`);
+    }
+  }
+  document.getElementById("progress").textContent=`${k} of ${n} tasks done`;
+}
+function renderAll(){ renderGantt(); renderTable(); }
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
+  filter=c.dataset.f; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===c)); renderAll(); }));
+renderAll();
 </script>
 </body>
 </html>
