@@ -10,20 +10,16 @@
    Palette and type match the official ASU PowerPoint template used for the proposal deck (Arial; maroon 8C1D40, gold FFC627, theme accents). */
 :root{
   --maroon:#8C1D40; --gold:#FFC627; --on-maroon:#FFFFFF;
-  --bg:#F4F4F4; --surface:#FFFFFF; --fg:#191919; --muted:#5C5C5C; --line:#D9D9D9;
-  --accent:#8C1D40; --accent-soft:#FFF2CC;
+  --bg:#FFFFFF; --surface:#FFFFFF; --fg:#2B2B2B; --muted:#5C5C5C; --line:#E2E2E2;
+  --accent:#8C1D40; --accent-soft:#FFF4D1;
   --db:#00A3E0; --dj:#FF7F32; --fr:#78BE20; --all:#747474;
-  --warn:#8C6400; --warn-bg:#FFF2CC;
+  --warn:#8C6400; --warn-bg:#FFF4D1;
+  /* pastel card tints from the ASU theme accents */
+  --p-gold:#FFF4D1; --p-maroon:#F7E4EA; --p-blue:#E2F4FB; --p-green:#EDF7E2; --p-orange:#FFECDF; --p-grey:#F5F5F5;
   --display:Arial,'Helvetica Neue',Helvetica,sans-serif; --body:Arial,'Helvetica Neue',Helvetica,sans-serif; --mono:Consolas,'Courier New',ui-monospace,monospace;
+  color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#191919; --surface:#2A2A2A; --fg:#F4F4F4; --muted:#B5B5B5; --line:#454545;
-  --accent:#FFC627; --accent-soft:#3A2A10; --all:#A6A6A6;
-  --warn:#FFC627; --warn-bg:#3A2F12; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#191919; --surface:#2A2A2A; --fg:#F4F4F4; --muted:#B5B5B5; --line:#454545;
-  --accent:#FFC627; --accent-soft:#3A2A10; --all:#A6A6A6;
-  --warn:#FFC627; --warn-bg:#3A2F12; color-scheme:dark}
+/* Deliberately light-only: white page in every viewer theme */
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:1180px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
@@ -42,7 +38,8 @@ p{margin:0;max-width:72ch}
 section{display:flex;flex-direction:column;gap:12px}
 /* milestones */
 .ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.ms div{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--gold);padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.ms div:nth-child(1){background:var(--p-gold)} .ms div:nth-child(2){background:var(--p-blue)} .ms div:nth-child(3){background:var(--p-green)} .ms div:nth-child(4){background:var(--p-orange)} .ms div:nth-child(5){background:var(--p-maroon)}
+.ms div{border-radius:8px;border:0;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .ms b{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--accent)}
 .ms span{font-size:14px}
 /* controls */
@@ -73,7 +70,10 @@ td.id{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:no
 .tag{font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);background:var(--warn-bg);padding:0 6px;border-radius:3px;margin-left:6px;white-space:nowrap}
 /* lists */
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
-.box{background:var(--surface);border:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.cols .box:nth-child(6n+1){background:var(--p-gold)} .cols .box:nth-child(6n+2){background:var(--p-blue)} .cols .box:nth-child(6n+3){background:var(--p-green)}
+.cols .box:nth-child(6n+4){background:var(--p-orange)} .cols .box:nth-child(6n+5){background:var(--p-maroon)} .cols .box:nth-child(6n+6){background:var(--p-grey)}
+.skus span{border-radius:6px}
+.box{border-radius:8px;border:0;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .skus{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
 .skus span{font-family:var(--mono);font-size:13px;border:1px solid var(--line);padding:4px 8px;background:var(--bg)}
