@@ -33,7 +33,7 @@ header .eyebrow{color:var(--gold)}
 h1{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.2;margin:0;text-wrap:balance}
 h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0;text-wrap:balance;color:var(--accent)}
 .box h2{color:var(--fg);font-size:17px}
-p{margin:0;max-width:72ch}
+p{margin:0}
 .muted{color:var(--muted)}
 .mono,code{font-family:var(--mono);font-size:13px}
 code{background:var(--p-grey);padding:1px 5px;border-radius:4px;word-break:break-word}
@@ -116,8 +116,6 @@ tr.guide .gh{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:
 .cols .box:nth-child(6n+4){background:var(--p-orange)} .cols .box:nth-child(6n+5){background:var(--p-maroon)} .cols .box:nth-child(6n+6){background:var(--p-grey)}
 .box{border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
-.skus{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
-.skus span{font-family:var(--mono);font-size:13px;border:1px solid var(--line);padding:4px 8px;background:var(--bg);border-radius:6px}
 a{color:var(--accent);text-underline-offset:2px}
 .links{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}
 .res dl{margin:0;display:flex;flex-direction:column;gap:7px}
@@ -127,7 +125,7 @@ a{color:var(--accent);text-underline-offset:2px}
 .note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:10px 14px;font-size:14px;border-radius:0 8px 8px 0}
 
 /* workspace: gantt left, task panel right */
-.work{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+.work{display:grid;grid-template-columns:auto minmax(360px,1fr);gap:16px;align-items:start}
 .work > *{min-width:0}
 .panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 60px);max-height:calc(100vh - 76px);overflow:auto;background:var(--p-gold);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-top:5px solid var(--maroon)}
 .panel .pp{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
@@ -149,6 +147,17 @@ a{color:var(--accent);text-underline-offset:2px}
 .grow .ok{color:#3E7D10;margin-left:4px;font-weight:700}
 .grow.sel .ok{color:var(--gold)}
 @media (max-width:1099px){.work{grid-template-columns:1fr}.panel{position:static;max-height:none}}
+.skus{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.sku{border-radius:8px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.sku:nth-child(6n+1){background:var(--p-gold)} .sku:nth-child(6n+2){background:var(--p-blue)} .sku:nth-child(6n+3){background:var(--p-green)}
+.sku:nth-child(6n+4){background:var(--p-orange)} .sku:nth-child(6n+5){background:var(--p-maroon)} .sku:nth-child(6n+6){background:var(--p-grey)}
+.skh{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12.5px}
+.skh b{color:var(--maroon)}
+.skh .gp,.skh .vit{font-size:11px;border-radius:3px;padding:0 5px;background:#FFFFFF;color:var(--muted)}
+.skh .vit{background:var(--maroon);color:var(--on-maroon)}
+.skn{font-weight:700;font-size:14px;line-height:1.3}
+.ske{font-size:12.5px;color:var(--muted);font-style:italic;line-height:1.3}
+.skm{font-size:12.5px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -156,8 +165,8 @@ a{color:var(--accent);text-underline-offset:2px}
 
 <div class="wrap">
 <header>
-  <span class="eyebrow">MFG 598 · Group Project · 20 Oct – 4 Dec 2026</span>
-  <h1>Simulated Smart Kanban Bins: work plan</h1>
+  <span class="eyebrow">Arizona State University · Group Project · 20 Oct – 4 Dec 2026</span>
+  <h1>MFG 598 Industrial Internet of Things (IIoT) · Simulated Smart Kanban Bins: work plan</h1>
   <p class="muted">Tasks follow the five milestones in the proposal deck. Each task has one owner, a done check anyone on the team can verify, its dependencies and a step-by-step guide: click any task in the Gantt chart to see them in the panel beside it. Ticks are saved in your own browser only.</p>
   <div class="links"><a href="https://github.com/diegobethancourth/smart_kanban_bins">Repository: github.com/diegobethancourth/smart_kanban_bins</a><a href="https://diegobethancourth.github.io/smart_kanban_bins/">This plan online: diegobethancourth.github.io/smart_kanban_bins</a></div>
 </header>
@@ -184,25 +193,19 @@ a{color:var(--accent);text-underline-offset:2px}
 
 <section>
   <h2>Gantt chart and tasks</h2>
-  <div class="legend">
-    <span><i style="background:var(--db)"></i>Diego</span><span><i style="background:var(--dj)"></i>Dhansukh</span><span><i style="background:var(--fr)"></i>Febylina</span><span><i style="background:var(--all)"></i>Whole team</span>
-    <span><i style="background:var(--p-orange)"></i>Thanksgiving</span><span><i style="border-left:2px dashed var(--gold);width:2px;border-radius:0"></i>Milestone</span><span><i style="border-left:2px solid var(--maroon);width:2px;border-radius:0"></i>Today</span>
-  </div>
   <div class="work">
     <div>
       <div class="ganttbox"><div class="gantt" id="gantt"></div></div>
-      <p class="muted" style="font-size:13px;margin-top:8px">One column per day, 17 Oct – 4 Dec; shaded columns are weekends. Click a task to see its details and guide in the panel. The guides are suggested steps: adjust them as the work shows a better way, and note any change in <span class="mono">/docs/decisions.md</span>.</p>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>
   </div>
+  <p class="muted" style="font-size:13px">One column per day, 17 Oct – 4 Dec. Grey columns are weekends, orange columns are Thanksgiving (26–27 Nov), dashed gold lines are milestones and the maroon line is today. Bar colours follow the owner buttons above. Click a task to see its details and guide in the panel. The guides are suggested steps: adjust them as the work shows a better way, and note any change in <span class="mono">/docs/decisions.md</span>.</p>
 </section>
 
 <section>
-  <h2>Shortlisted items for the six bins</h2>
-  <div class="skus">
-    <span>101013101</span><span>101001101</span><span>102013601</span><span>102044501</span><span>103015801</span><span>103016601</span>
-  </div>
-  <p class="muted">From SKU_Weight_Coverage_G1-G5_SmartKanban.xlsx. Where a unit weight is missing, the bin uses a stated simulation parameter; a real deployment would calibrate it at setup.</p>
+  <h2>Shortlisted medicines for the six bins</h2>
+  <div class="skus"><div class="sku"><div class="skh"><b>Bin 1</b><span class="mono">101013101</span><span class="gp">G1</span><span class="vit">Vital</span></div><div class="skn">Folic acid 5 mg, tablet, oral</div><div class="ske">Fólico ácido, 5mg, tableta, v.o.</div><div class="skm">Unit weight 0.3 g · 1,000 units per box</div></div><div class="sku"><div class="skh"><b>Bin 2</b><span class="mono">101001101</span><span class="gp">G1</span></div><div class="skn">Paracetamol (acetaminophen) 500 mg, tablet, oral</div><div class="ske">Paracetamol (acetaminofén), 500mg, tableta, v.o.</div><div class="skm">Unit weight 0.8 g · 1,000 units per box</div></div><div class="sku"><div class="skh"><b>Bin 3</b><span class="mono">102013601</span><span class="gp">G2</span><span class="vit">Vital</span></div><div class="skn">Benzathine benzylpenicillin 2,400,000 IU, lyophilised powder, IM</div><div class="ske">Bencilpenicilina benzatínica 2,400,000ui, polvo liofilizado, i.m.</div><div class="skm">Unit weight 21.2 g · 1,200 units per box</div></div><div class="sku"><div class="skh"><b>Bin 4</b><span class="mono">102044501</span><span class="gp">G2</span></div><div class="skn">Diclofenac sodium 25 mg/ml, solution, IM or IM/IV</div><div class="ske">Diclofenaco sódico 25mg/ml, solución, i.m. o i.m./i.v.</div><div class="skm">Unit weight 8.0 g · 2,160 units per box</div></div><div class="sku"><div class="skh"><b>Bin 5</b><span class="mono">103015801</span><span class="gp">G3</span></div><div class="skn">Hydroxyzine 10 mg/5 ml syrup, bottle 180–200 ml, oral</div><div class="ske">Hidroxicina, 0.2%, 10mg/5ml, jarabe, frasco, 180-200 ml, v.o.</div><div class="skm">Unit weight 250 g · 1 unit per box</div></div><div class="sku"><div class="skh"><b>Bin 6</b><span class="mono">103016601</span><span class="gp">G3</span></div><div class="skn">Chlorphenamine maleate 2–2.5 mg/5 ml syrup, bottle 120 ml, oral</div><div class="ske">Clorfeniramina maleato, 2-2.5mg/5ml, jarabe, frasco, 120ml, v.o.</div><div class="skm">Unit weight 154 g · 72 units per box</div></div></div>
+  <p class="muted">From SKU_Weight_Coverage_G1-G5_SmartKanban.xlsx (CSS catalogue description in Spanish under each name). Where a unit weight is missing or doubtful, the bin uses a stated simulation parameter; a real deployment would calibrate it at setup. Items with several packaging variants need recalibration when the presentation changes.</p>
 </section>
 
 <section>
