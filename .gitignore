@@ -1,0 +1,25 @@
+# Credentials: never commit
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / Node-RED
+node_modules/
+.node-red/
+*.backup
+.config.*.json
+
+# Raw data stays local; only anonymised CSVs in /data are committed
+raw/
+*.xlsx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

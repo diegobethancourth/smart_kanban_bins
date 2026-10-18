@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Kanban Bins Work Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column; ASU maroon header band with gold rule, milestones, phase-grouped task table with a Gantt strip per row.
+   Palette and type match the official ASU PowerPoint template used for the proposal deck (Arial; maroon 8C1D40, gold FFC627, theme accents). */
+:root{
+  --maroon:#8C1D40; --gold:#FFC627; --on-maroon:#FFFFFF;
+  --bg:#F4F4F4; --surface:#FFFFFF; --fg:#191919; --muted:#5C5C5C; --line:#D9D9D9;
+  --accent:#8C1D40; --accent-soft:#FFF2CC;
+  --db:#00A3E0; --dj:#FF7F32; --fr:#78BE20; --all:#747474;
+  --warn:#8C6400; --warn-bg:#FFF2CC;
+  --display:Arial,'Helvetica Neue',Helvetica,sans-serif; --body:Arial,'Helvetica Neue',Helvetica,sans-serif; --mono:Consolas,'Courier New',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#191919; --surface:#2A2A2A; --fg:#F4F4F4; --muted:#B5B5B5; --line:#454545;
+  --accent:#FFC627; --accent-soft:#3A2A10; --all:#A6A6A6;
+  --warn:#FFC627; --warn-bg:#3A2F12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#191919; --surface:#2A2A2A; --fg:#F4F4F4; --muted:#B5B5B5; --line:#454545;
+  --accent:#FFC627; --accent-soft:#3A2A10; --all:#A6A6A6;
+  --warn:#FFC627; --warn-bg:#3A2F12; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:8px;background:var(--maroon);color:var(--on-maroon);padding:22px 24px;border-bottom:6px solid var(--gold)}
+header .muted{color:var(--on-maroon);opacity:.9}
+header a{color:var(--gold)}
+header .eyebrow{color:var(--gold)}
+h2{color:var(--accent)}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;font-size:32px;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0;text-wrap:balance}
+.box h2{color:var(--fg);font-size:17px}
+p{margin:0;max-width:72ch}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono);font-size:13px}
+section{display:flex;flex-direction:column;gap:12px}
+/* milestones */
+.ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.ms div{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--gold);padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.ms b{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--accent)}
+.ms span{font-size:14px}
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:5px 12px;border-radius:999px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--maroon);border-color:var(--maroon);color:var(--on-maroon)}
+.chip:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.progress{margin-left:auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* table */
+.tablebox{overflow-x:auto;border:1px solid var(--line);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
+thead th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--on-maroon);font-weight:700;background:var(--maroon);position:sticky;top:0}
+tr.phase td{background:var(--accent-soft);font-weight:700;color:var(--fg);padding:8px 10px;border-left:4px solid var(--gold)}
+tr.phase .pd{font-family:var(--mono);font-weight:400;font-size:13px;color:var(--muted);margin-left:8px}
+tr.done td:not(.ck){opacity:.5}
+tr.done .task{text-decoration:line-through}
+td.ck{width:28px}
+td.id{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+.task{font-weight:500}
+.detail{color:var(--muted);font-size:13.5px;margin-top:2px}
+.owner{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;font-size:13.5px}
+.dates{font-family:var(--mono);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.gantt{position:relative;height:10px;background:repeating-linear-gradient(90deg,transparent 0 calc(100%/7 - 1px),var(--line) calc(100%/7 - 1px) calc(100%/7));margin-top:6px;border-radius:2px}
+.gantt i{position:absolute;top:0;height:10px;border-radius:2px}
+.dep{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tag{font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);background:var(--warn-bg);padding:0 6px;border-radius:3px;margin-left:6px;white-space:nowrap}
+/* lists */
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.box{background:var(--surface);border:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.skus{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
+.skus span{font-family:var(--mono);font-size:13px;border:1px solid var(--line);padding:4px 8px;background:var(--bg)}
+a{color:var(--accent);text-underline-offset:2px}
+.links{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}
+.res dl{margin:0;display:flex;flex-direction:column;gap:7px}
+.res dt{font-weight:500;font-size:14px}
+.res dd{margin:0;color:var(--muted);font-size:13.5px}
+.res dt a{word-break:break-word}
+.note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:10px 14px;font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">MFG 598 · Group Project · 20 Oct – 4 Dec 2026</span>
+  <h1>Simulated Smart Kanban Bins: work plan</h1>
+  <p class="muted">Tasks follow the five milestones in the proposal deck. Each task has one owner, a done check that anyone on the team can verify, and the tasks it depends on. Tick tasks as they finish; ticks are saved in your own browser only.</p>
+  <div class="links"><a href="https://github.com/diegobethancourth/smart_kanban_bins">Repository: github.com/diegobethancourth/smart_kanban_bins</a><a href="https://diegobethancourth.github.io/smart_kanban_bins/">This plan online: diegobethancourth.github.io/smart_kanban_bins</a></div>
+</header>
+
+<section>
+  <h2>Milestones</h2>
+  <div class="ms">
+    <div><b>M1 · Mon 2 Nov</b><span>One bin end to end: Modbus → edge → MQTT/TLS → cloud database</span></div>
+    <div><b>M2 · Mon 16 Nov</b><span>Six bins replaying SALMI series; P-240 reorder events in the database</span></div>
+    <div><b>M3 · Tue 24 Nov</b><span>Faults, buffering, dashboard and detection-latency results complete</span></div>
+    <div><b>M4 · Tue 1 Dec</b><span>Code frozen, README done, backup video recorded, two timed rehearsals</span></div>
+    <div><b>M5 · 2 Dec / 4 Dec</b><span>Live demonstration (Wed) · public GitHub repository submitted (Fri)</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Tasks</h2>
+  <div class="controls" role="group" aria-label="Filter by owner">
+    <button class="chip" data-f="all" aria-pressed="true">Everyone</button>
+    <button class="chip" data-f="DB" aria-pressed="false"><span class="dot" style="background:var(--db)"></span>Bethancourth</button>
+    <button class="chip" data-f="DJ" aria-pressed="false"><span class="dot" style="background:var(--dj)"></span>Jaladi</button>
+    <button class="chip" data-f="FR" aria-pressed="false"><span class="dot" style="background:var(--fr)"></span>Rumwaropen</button>
+    <span class="progress" id="progress"></span>
+  </div>
+  <div class="tablebox">
+    <table>
+      <thead><tr><th></th><th>ID</th><th style="width:40%">Task and done check</th><th>Owner</th><th>Dates · timeline</th><th>Needs</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="muted" style="font-size:13px">The bar under each date range shows the task on the 17 Oct – 4 Dec calendar; grid lines mark weeks.</p>
+</section>
+
+<section>
+  <h2>Shortlisted items for the six bins</h2>
+  <div class="skus">
+    <span>101013101</span><span>101001101</span><span>102013601</span><span>102044501</span><span>103015801</span><span>103016601</span>
+  </div>
+  <p class="muted">From SKU_Weight_Coverage_G1-G5_SmartKanban.xlsx. Where a unit weight is missing, the bin uses a stated simulation parameter; a real deployment would calibrate it at setup.</p>
+</section>
+
+<section>
+  <h2>Resources</h2>
+  <p class="muted">Everything a team member needs to install, sign up for or read. Accounts are created once and shared through <span class="mono">.env</span> files sent privately, never through the repository.</p>
+  <div class="cols res">
+    <div class="box"><h2>Project</h2><dl>
+      <dt><a href="https://github.com/diegobethancourth/smart_kanban_bins">github.com/diegobethancourth/smart_kanban_bins</a></dt><dd>Team repository. Clone: <span class="mono">git clone https://github.com/diegobethancourth/smart_kanban_bins.git</span></dd>
+      <dt><a href="https://diegobethancourth.github.io/smart_kanban_bins/">diegobethancourth.github.io/smart_kanban_bins</a></dt><dd>This work plan, published from <span class="mono">/docs</span> in the repository</dd>
+      <dt><a href="https://torredecontrolcss.github.io/SIGUELO_DINALOG/">SIGUELO DINALOG dashboards</a></dt><dd>CSS context, including the replenishment dashboard that applies P-240. Read-only reference</dd>
+    </dl></div>
+    <div class="box"><h2>Install on your computer</h2><dl>
+      <dt><a href="https://git-scm.com/downloads">Git</a></dt><dd>Version control (T0.1, all tasks)</dd>
+      <dt><a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a></dt><dd>Runs the whole stack with <span class="mono">docker compose up</span> (T1.1)</dd>
+      <dt><a href="https://www.python.org/downloads/">Python 3.11 or later</a></dt><dd>Simulator and data scripts (T1.2, T1.3, Phase 2)</dd>
+      <dt><a href="https://nodered.org/docs/getting-started/">Node-RED</a></dt><dd>Edge gateway (T1.4 onward)</dd>
+      <dt><a href="https://code.visualstudio.com/">Visual Studio Code</a></dt><dd>Suggested editor</dd>
+    </dl></div>
+    <div class="box"><h2>Cloud accounts (free tier)</h2><dl>
+      <dt><a href="https://console.hivemq.cloud/">HiveMQ Cloud</a></dt><dd>MQTT broker, TLS on port 8883 (T0.2, T1.5)</dd>
+      <dt><a href="https://cloud2.influxdata.com/signup">InfluxDB Cloud</a></dt><dd>Time-series database (T0.2, T1.6, T2.7)</dd>
+      <dt><a href="https://grafana.com/products/cloud/">Grafana Cloud</a></dt><dd>One of the two dashboard options (T2.8)</dd>
+    </dl></div>
+    <div class="box"><h2>Libraries and Node-RED nodes</h2><dl>
+      <dt><a href="https://pymodbus.readthedocs.io/">pymodbus documentation</a></dt><dd>Modbus TCP server for the simulated load cells (T1.2)</dd>
+      <dt><a href="https://flows.nodered.org/node/node-red-contrib-modbus">node-red-contrib-modbus</a></dt><dd>Modbus polling in the edge flow (T1.4)</dd>
+      <dt><a href="https://flows.nodered.org/node/node-red-contrib-influxdb">node-red-contrib-influxdb</a></dt><dd>Writes to InfluxDB from Node-RED, if used instead of a bridge (T1.6)</dd>
+      <dt><a href="https://dashboard.flowfuse.com/">FlowFuse Dashboard for Node-RED</a></dt><dd>The other dashboard option (T2.8)</dd>
+    </dl></div>
+    <div class="box"><h2>Test tools</h2><dl>
+      <dt><a href="https://mqtt-explorer.com/">MQTT Explorer</a></dt><dd>Subscribe to the broker and check topics and retained messages (T0.3, T1.5)</dd>
+      <dt><a href="https://www.modbusdriver.com/modpoll.html">modpoll</a></dt><dd>Command-line Modbus client to read the simulator registers (T1.2)</dd>
+    </dl></div>
+    <div class="box"><h2>Standards and reading</h2><dl>
+      <dt><a href="https://www.hivemq.com/mqtt/">HiveMQ MQTT Essentials</a></dt><dd>QoS, retained messages, last will, keep-alive</dd>
+      <dt><a href="https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html">MQTT 5.0 specification (OASIS)</a></dt><dd>Reference for the edge-to-cloud protocol</dd>
+      <dt><a href="https://modbus.org/specs.php">Modbus specifications</a></dt><dd>Holding registers and function codes</dd>
+      <dt><a href="https://ref.gs1.org/standards/epcis/">GS1 EPCIS 2.0</a></dt><dd>Event format for the optional task T3.7</dd>
+    </dl></div>
+  </div>
+</section>
+
+<div class="cols">
+  <div class="box">
+    <h2>Rules for the whole project</h2>
+    <ul>
+      <li>CSS systems are used read-only. Nothing is changed in SALMI, cargar_reportes.html or reposicion_ue.html.</li>
+      <li>The repository is public from the first commit. It holds aggregated, anonymised series only: facility shown as UE-A, no names, endpoints or credentials. Credentials live in <span class="mono">.env</span>, which is never committed.</li>
+      <li>Code is written and commented by the team. Every pull request gets one review from another member.</li>
+      <li>Weekly 30-minute check-in (proposed Sunday) against this plan.</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h2>Risks and fallbacks</h2>
+    <ul>
+      <li><b>Port 8883 blocked</b> on the campus or demo network. Test it in T0.3; fallback is MQTT over secure WebSockets or a phone hotspot.</li>
+      <li><b>Free-tier limits</b> on HiveMQ Cloud or InfluxDB Cloud. Keep message rates low (deadband, heartbeat) and check each plan's limits in T0.2.</li>
+      <li><b>Live demo failure.</b> The backup video (T4.4) is recorded from the frozen build.</li>
+      <li><b>Thanksgiving, 26–27 Nov.</b> Little or no work is planned on those two days.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">The detection-latency result comes from a simulation, so it measures how early continuous sensing <i>could</i> flag a crossing compared with the report date. Not field performance. State this in the README and in the demo.</div>
+</div>
+
+<script>
+const START = new Date(2026,9,17), END = new Date(2026,11,4);
+const SPAN = (END-START)/864e5 + 1;
+const OWN = {DB:["Bethancourth","--db"],DJ:["Jaladi","--dj"],FR:["Rumwaropen","--fr"],ALL:["Whole team","--all"]};
+const P = [
+ ["0","Kick-off","17 – 19 Oct",[
+  ["T0.1","Invite Febylina and Dhansukh as collaborators on the repository; each member installs the tools listed under Resources","Both invitations accepted; every member has cloned the repository and pushed a test branch","DB","10-17","10-19",""],
+  ["T0.2","Open HiveMQ Cloud and InfluxDB Cloud free accounts and note their limits","Both consoles reachable; limits written in /docs/decisions.md","FR","10-17","10-19",""],
+  ["T0.3","Test outbound port 8883 from campus Wi-Fi and the demo room","Result recorded; fallback chosen if blocked","DJ","10-17","10-19",""]]],
+ ["1","Single bin end to end","20 Oct – 2 Nov · M1",[
+  ["T1.1","Repository skeleton: /simulator, /edge, /cloud, /dashboard, /data, /docs, docker-compose.yml, .env.example, .gitignore","<span class='mono'>docker compose up</span> starts all services with no errors","FR","10-20","10-23","T0.1"],
+  ["T1.2","pymodbus TCP server for one bin: 40001–40002 net weight in grams (32-bit unsigned), 40003 status (0 OK, 1 fault)","A Modbus client tool reads a changing weight from the simulator","DB","10-20","10-25","T1.1"],
+  ["T1.3","Extract and anonymise SALMI series for the six shortlisted items at one facility with complete reports","One CSV per item in /data (date, stock); facility shown as UE-A","DB","10-20","10-30",""],
+  ["T1.4","Node-RED flow: poll the bin every second and decode the 32-bit register","Node-RED debug panel shows grams equal to the simulator value","DJ","10-24","10-28","T1.2"],
+  ["T1.5","Connect the edge to HiveMQ Cloud over TLS on 8883; publish css/{ue}/bins/{bin_id}/level (QoS 1, retained)","An MQTT client subscribed from another network sees the messages","DJ","10-26","10-30","T0.2, T0.3, T1.4"],
+  ["T1.6","Write MQTT messages to an InfluxDB Cloud bucket and draw a first graph","Graph of one bin's weight over at least 10 minutes in Data Explorer","FR","10-27","11-02","T1.5"]]],
+ ["2","Six bins and the P-240 rule","3 – 16 Nov · M2",[
+  ["T2.1","Bin configuration file: item code, unit weight, units per box, tare m0, capacity, vital flag, d̄ and σ_d","bins.yaml loads in the simulator and the edge; every value has a source or is marked as a simulation parameter","DB","11-03","11-05","T1.3"],
+  ["T2.2","Replay engine: hold stock at each report date, fill the days between with Poisson-like consumption, compress time (one day = N seconds)","Replayed stock equals the SALMI value on every report date","DB","11-04","11-10","T2.1"],
+  ["T2.3","Extend the simulator to six bins (one unit ID or register block per bin)","Edge reads six independent weights","DB","11-09","11-11","T2.2"],
+  ["T2.4","Edge processing: n = ⌊(m − m0)/m_u⌋, deadband, heartbeat publish","Unit counts match the simulator; no publish for changes inside the deadband except the heartbeat","DJ","11-05","11-11","T1.5, T2.1"],
+  ["T2.5","P-240 function: SS = z·σ_d·√L, ROP = d̄·L + SS, L = 20, z = 1.65 vital / 1.28 other; publish css/{ue}/bins/{bin_id}/reorder with hysteresis","Unit test: ROP equals reposicion_ue.html for the same items within rounding; one event per crossing","DB","11-09","11-13","T2.1"],
+  ["T2.6","Integrate P-240 into the Node-RED flow","Reorder events appear on the broker during a replay","DJ","11-12","11-14","T2.4, T2.5"],
+  ["T2.7","InfluxDB schema: measurements level and reorder; tags ue, bin_id, item","Both measurements receive data from six bins","FR","11-05","11-09","T1.6"],
+  ["T2.8","Choose the dashboard tool (Grafana or Node-RED Dashboard) and build a first draft","Decision recorded; draft shows six stock lines","FR","11-09","11-16","T2.7"]]],
+ ["3","Faults, buffering, dashboard, analysis","17 – 24 Nov · M3",[
+  ["T3.1","Fault injection in the simulator: noise, drift, stuck sensor; set 40003 = 1 when faulted","Each fault can be switched on from the config and is visible in the data","DB","11-17","11-19","T2.3"],
+  ["T3.2","Edge fault handling: detect a stuck reading and status = 1; flag rather than reorder","A stuck bin raises a status flag and produces no false reorder","DJ","11-18","11-20","T3.1, T2.6"],
+  ["T3.3","Store-and-forward: buffer messages while the broker is unreachable and send them in order on reconnect","Unplug the network for 5 minutes: no gap in the stored data","DJ","11-17","11-21","T2.6"],
+  ["T3.4","Last will on css/{ue}/edge/{gw_id}/status","Stopping the edge sets status to offline within the keep-alive time","DJ","11-20","11-21","T1.5"],
+  ["T3.5","Final dashboard: sawtooth stock curve per bin with ROP line, reorder events table, gateway status","All three panels visible on one screen during a replay","FR","11-17","11-23","T2.8, T2.6"],
+  ["T3.6","Detection-latency analysis: sensed ROP crossing time vs the report date on which the same crossing appeared","Table and histogram per item in /docs; method and limits written","DB","11-18","11-24","T2.6"],
+  ["T3.7","Optional: emit a GS1 EPCIS ObjectEvent (JSON) for each reorder event","Example event validates against the EPCIS 2.0 schema","FR","11-21","11-24","T2.6"]]],
+ ["4","Freeze and rehearse","25 Nov – 1 Dec · M4",[
+  ["T4.1","Code freeze: bug fixes only after this date","Tag v1.0 on main","ALL","11-25","11-25","M3"],
+  ["T4.2","README: summary of up to 200 words, architecture figure, reproduction steps, screenshots","A member who did not write it reproduces the demo from a clean clone","FR","11-25","11-30","T4.1"],
+  ["T4.3","Privacy and quality pass: comments in all modules, no credentials or facility names in files or git history","Checklist signed off by all three members","DB","11-25","11-30","T4.1"],
+  ["T4.4","Record the backup video of the full demo (5–7 min)","Video file uploaded to the team drive","DJ","11-28","11-30","T4.1"],
+  ["T4.5","Demo script and two timed rehearsals with one presenter","Both runs end within 5–7 minutes","ALL","11-29","12-01","T4.4"]]],
+ ["5","Deliver","2 Dec · 4 Dec · M5",[
+  ["T5.1","Live demonstration in class","Delivered within 5–7 minutes","ALL","12-02","12-02","T4.5"],
+  ["T5.2","Final check of the public repository and submit the link","Link submitted on Canvas; a clean clone runs from the README alone","FR","12-03","12-04","T4.2, T4.3"]]]
+];
+const d = s => { const [m,dd]=s.split("-").map(Number); return new Date(2026,m-1,dd); };
+const fmt = x => x.toLocaleDateString("en-US",{day:"numeric",month:"short"});
+let done = {}; try{ done = JSON.parse(localStorage.getItem("skb-done")||"{}"); }catch(e){}
+let filter = "all";
+function render(){
+  const tb = document.getElementById("rows"); tb.innerHTML = "";
+  let n=0, k=0;
+  for(const [pn,pt,pd,tasks] of P){
+    const vis = tasks.filter(t => filter==="all" || t[3]===filter || t[3]==="ALL");
+    if(!vis.length) continue;
+    tb.insertAdjacentHTML("beforeend",`<tr class="phase"><td colspan="6">Phase ${pn} · ${pt}<span class="pd">${pd}</span></td></tr>`);
+    for(const [id,task,check,own,s,e,dep] of vis){
+      n++; if(done[id]) k++;
+      const a=d(s), b=d(e), L=((a-START)/864e5)/SPAN*100, W=((b-a)/864e5+1)/SPAN*100;
+      const opt = id==="T3.7" ? '<span class="tag">optional</span>' : "";
+      tb.insertAdjacentHTML("beforeend",`<tr class="${done[id]?"done":""}">
+        <td class="ck"><input type="checkbox" id="ck-${id}" aria-label="Mark ${id} done" ${done[id]?"checked":""}></td>
+        <td class="id">${id}</td>
+        <td><div class="task">${task}${opt}</div><div class="detail">Done when: ${check}</div></td>
+        <td><span class="owner"><span class="dot" style="background:var(${OWN[own][1]})"></span>${OWN[own][0]}</span></td>
+        <td><div class="dates">${a.getTime()===b.getTime()?fmt(a):fmt(a)+" – "+fmt(b)}</div><div class="gantt" style="width:220px"><i style="left:${L}%;width:${W}%;background:var(${OWN[own][1]})"></i></div></td>
+        <td class="dep">${dep||"—"}</td></tr>`);
+      tb.lastElementChild.querySelector("input").addEventListener("change", ev => {
+        done[id]=ev.target.checked; try{ localStorage.setItem("skb-done",JSON.stringify(done)); }catch(e){} render(); });
+    }
+  }
+  document.getElementById("progress").textContent = `${k} of ${n} tasks done`;
+}
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  filter = c.dataset.f; document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x===c)); render(); }));
+render();
+</script>
+</body>
+</html>
