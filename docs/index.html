@@ -663,7 +663,8 @@ function renderPanel(){
       <dt>Needs</dt><dd>${deps}</dd>
       <dt>Done when</dt><dd>${t.check}</dd>
     </dl>
-    <label class="donebox" for="done-cb"><input type="checkbox" id="done-cb" ${done[t.id]?"checked":""} ${(!me||busy||!statusSrc)?"disabled":""}> <span>${busy?"Saving to GitHub…":me?`Mark ${t.id} as done`:`Mark ${t.id} as done (connect GitHub above first)`}</span></label>
+    <label class="donebox" for="done-cb"><input type="checkbox" id="done-cb" ${done[t.id]?"checked":""} ${(!me||busy||!statusSrc)?"disabled":""}> <span>${busy?"Saving to GitHub…":me?`Mark ${t.id} as done`:`Mark ${t.id} as done (locked until you connect GitHub)`}</span></label>
+    ${!me?'<button class="btn" type="button" id="pconn" style="margin:0;align-self:flex-start">Connect GitHub to mark tasks</button>':""}
     ${panelMsg?`<div class="msg ${panelMsg.startsWith("Saved")?"okm":"err"}">${panelMsg}</div>`:""}
     <div class="gh">How to do it</div>
     <ol>${t.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
@@ -674,6 +675,7 @@ function renderPanel(){
     try{ await writeStatus(t.id,mark); panelMsg=`Saved to GitHub: ${t.id} ${mark?"marked done":"unmarked"}.`; }
     catch(err){ panelMsg=err.message; }
     busy=false; renderAll(); });
+  const pc=pnl.querySelector("#pconn"); if(pc) pc.addEventListener("click",()=>{ const bx=document.getElementById("connbox"); bx.hidden=false; bx.scrollIntoView({block:"center"}); document.getElementById("who").focus(); });
   pnl.querySelectorAll("[data-go]").forEach(x=>x.addEventListener("click",()=>select(x.dataset.go)));
   pnl.querySelector("#prev").addEventListener("click",()=>step(-1));
   pnl.querySelector("#next").addEventListener("click",()=>step(1));
