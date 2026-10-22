@@ -3,7 +3,7 @@
 MFG 598 Industrial Internet of Things · Arizona State University · Fall 2026
 Group project: D. Bethancourth, D. Jaladi, F. Rumwaropen · Instructor: Dr. Farhad Ameri
 
-A simulated IIoT chain for pharmaceutical replenishment at a health facility: load cells under Kanban bins (simulated with pymodbus) → Modbus TCP → Node-RED edge gateway applying the CSS P-240 reorder-point rule → MQTT 5.0 over TLS → HiveMQ Cloud and InfluxDB Cloud → dashboard.
+A simulated IIoT chain for pharmaceutical replenishment at a health facility: load cells under Kanban bins (simulated with pymodbus) → Modbus TCP → Node-RED edge gateway applying the CSS P-240 reorder-point rule → MQTT 5.0 over TLS → EMQX Cloud (Serverless) and InfluxDB Cloud → dashboard.
 
 **Work plan:** https://diegobethancourth.github.io/smart_kanban_bins/
 
