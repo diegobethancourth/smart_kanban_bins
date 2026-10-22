@@ -225,7 +225,7 @@ a{color:var(--accent);text-underline-offset:2px}
       <dt><a href="https://code.visualstudio.com/">Visual Studio Code</a></dt><dd>Suggested editor</dd>
       <dt><a href="https://obsproject.com/">OBS Studio</a></dt><dd>Screen recording for the backup video (T4.4)</dd>
     </dl></div>
-    <div class="box"><h2>Cloud accounts (free tier)</h2><p style="font-size:13.5px"><b>Everything in this plan is free.</b> Nobody needs to enter a payment card. If a service asks for one, stop and tell Diego.</p><dl>
+    <div class="box"><h2>Cloud accounts (free tier)</h2><p style="font-size:13.5px">Use the free plan of each service.</p><dl>
       <dt><a href="https://www.emqx.com/en/pricing">EMQX Cloud Serverless</a></dt><dd>MQTT broker, TLS on port 8883, secure WebSockets on 8084. Free monthly quota; set the spending limit to 0 (T0.2, T1.5)</dd>
       <dt><a href="https://cloud2.influxdata.com/signup">InfluxDB Cloud</a></dt><dd>Time-series database (T0.2, T1.6, T2.7)</dd>
       <dt><a href="https://grafana.com/products/cloud/">Grafana Cloud</a></dt><dd>One of the two dashboard options (T2.8)</dd>
@@ -292,7 +292,7 @@ const P = [
    "Clone: <code>git clone https://github.com/diegobethancourth/smart_kanban_bins.git</code>",
    "Test a branch: <code>git checkout -b test/yourname</code>, <code>git commit --allow-empty -m \"Test branch\"</code>, <code>git push -u origin test/yourname</code>. Then delete the branch on GitHub."]],
   ["T0.2","Cloud accounts and limits","Open EMQX Cloud (Serverless) and InfluxDB Cloud free accounts and note their limits","Both consoles reachable, spending limit 0 on EMQX, limits written in /docs/decisions.md","FR","10-17","10-19","",[
-   "Do not enter a payment card anywhere. Both services have free plans; if one asks for a card, stop and tell Diego.",
+   "Use the free plan on both services.",
    "Sign up for EMQX Cloud (see Resources) and create a <b>Serverless</b> deployment. Set the <b>spending limit to 0</b>: it can then only use the free monthly quota and pauses instead of charging.",
    "From the deployment overview, copy the broker address. Port 8883 is MQTT over TLS; port 8084 is secure WebSockets (the fallback). Plain ports 1883 and 8083 are not offered.",
    "In the deployment's authentication settings, add two username and password pairs: one for the edge gateway and one for the team's test tools. Anonymous access is not allowed.",
