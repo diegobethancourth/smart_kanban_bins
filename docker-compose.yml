@@ -1,0 +1,15 @@
+services:
+  simulator:
+    build:
+      context: ./simulator
+    env_file:
+      - .env
+
+  edge:
+    image: nodered/node-red:latest
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./edge:/data
+    env_file:
+      - .env
