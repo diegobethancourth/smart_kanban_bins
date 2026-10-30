@@ -2,4 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-CMD ["python", "-c", "print('Smart Kanban simulator running')"]
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY server.py .
+
+EXPOSE 5020
+
+CMD ["python", "-u", "server.py"]
