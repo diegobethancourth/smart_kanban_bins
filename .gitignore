@@ -23,3 +23,10 @@ raw/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Local fallback env and Node-RED runtime files
+.env.local
+edge/context/
+edge/.flows*.json.backup
+edge/.flows_cred.json.backup
+.pytest_cache/
