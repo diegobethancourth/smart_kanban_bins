@@ -1,0 +1,9 @@
+# Loads the dashboard JSON files from dashboard/grafana/dashboards (T3.5)
+apiVersion: 1
+providers:
+  - name: smart-kanban
+    folder: Smart Kanban
+    type: file
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,215 @@
+# Smart Kanban Bins - bin configuration (T2.1). Source of truth.
+# Edit this file, then run:  python tools/build_config.py
+# That regenerates config/bins.json, which the simulator and Node-RED read.
+#
+# Every bin value has a source in its `src` map:
+#   salmi_series   computed from data/series/<bin>.csv (SALMI stock reports, UE-A)
+#   css_method     same method as the CSS replenishment dashboard (reposicion_ue.html):
+#                  demand = stock drops over the last 90 days, CV from weekly drops
+#   item_dict      item dictionary used by reposicion_ue.html (vital flag, name)
+#   shortlist      shortlist workbook (unit weight, units per box)
+#   p240           CSS procedure P-240 (z, L)
+#   computed       derived by tools/build_config.py from the values above
+#   sim_param      simulation parameter chosen by the team (not real data)
+
+ue: UE-A
+gw_id: gw01
+
+series:
+  first_date: "2026-06-08"
+  last_date: "2026-10-17"
+  report_dates: 92
+
+# P-240 rule: SS = z * sigma_d * sqrt(L), ROP = d_day * L + SS
+p240:
+  L_days: 20            # p240
+  z_vital: 1.65         # p240
+  z_other: 1.28         # p240
+  rearm_margin: 0.10    # sim_param: re-arm after units rise above ROP * (1 + margin)
+
+edge:
+  heartbeat_s: 60       # sim_param: publish level at least this often
+  stuck_polls: 20       # sim_param: identical raw readings in a row before checking for stuck
+  stuck_min_expected_units: 2   # sim_param: flag stuck only if d_day says this many units should have gone
+
+bins:
+
+  - bin: bin01
+    unit_id: 1
+    item: "101013101"
+    name: "Folic acid 5 mg, tablet, oral"
+    vital: true
+    unit_g: 0.3
+    units_per_box: 1000
+    tare_g: 400
+    scale_k: 1
+    d_month: 2600.0
+    cv_weekly: 0.668
+    deadband_units: 10
+    faults:
+      noise_g: 0.2            # standard deviation of the load-cell reading
+      drift_g_per_day: 0.0    # grams added per simulated day
+      stuck_from_day: null    # freeze the register from this simulated day (status stays 0)
+      hard_fault_from_day: null  # set status register 40003 = 1 from this simulated day
+    src:
+      item: item_dict
+      name: item_dict
+      vital: item_dict
+      unit_g: shortlist
+      units_per_box: shortlist
+      tare_g: sim_param
+      scale_k: computed
+      d_month: css_method
+      cv_weekly: css_method
+      deadband_units: sim_param
+      faults: sim_param
+
+  - bin: bin02
+    unit_id: 2
+    item: "101001101"
+    name: "Paracetamol (acetaminophen) 500 mg, tablet, oral"
+    vital: false
+    unit_g: 0.8
+    units_per_box: 1000
+    tare_g: 400
+    scale_k: 5
+    d_month: 14583.7
+    cv_weekly: 0.371
+    deadband_units: 25
+    faults:
+      noise_g: 0.2            # standard deviation of the load-cell reading
+      drift_g_per_day: 0.0    # grams added per simulated day
+      stuck_from_day: null    # freeze the register from this simulated day (status stays 0)
+      hard_fault_from_day: null  # set status register 40003 = 1 from this simulated day
+    src:
+      item: item_dict
+      name: item_dict
+      vital: item_dict
+      unit_g: shortlist
+      units_per_box: shortlist
+      tare_g: sim_param
+      scale_k: computed
+      d_month: css_method
+      cv_weekly: css_method
+      deadband_units: sim_param
+      faults: sim_param
+
+  - bin: bin03
+    unit_id: 3
+    item: "102013601"
+    name: "Benzathine benzylpenicillin 2,400,000 IU, powder for injection, IM"
+    vital: true
+    unit_g: 21.2
+    units_per_box: 1200
+    tare_g: 600
+    scale_k: 1
+    d_month: 79.5
+    cv_weekly: 0.52
+    deadband_units: 1
+    faults:
+      noise_g: 0.2            # standard deviation of the load-cell reading
+      drift_g_per_day: 0.0    # grams added per simulated day
+      stuck_from_day: null    # freeze the register from this simulated day (status stays 0)
+      hard_fault_from_day: null  # set status register 40003 = 1 from this simulated day
+    src:
+      item: item_dict
+      name: item_dict
+      vital: item_dict
+      unit_g: shortlist
+      units_per_box: shortlist
+      tare_g: sim_param
+      scale_k: computed
+      d_month: css_method
+      cv_weekly: css_method
+      deadband_units: sim_param
+      faults: sim_param
+
+  - bin: bin04
+    unit_id: 4
+    item: "102044501"
+    name: "Diclofenac sodium 25 mg/ml, solution for injection, IM or IM/IV"
+    vital: false
+    unit_g: 8.0
+    units_per_box: 2160
+    tare_g: 600
+    scale_k: 1
+    d_month: 133.3
+    cv_weekly: 0.641
+    deadband_units: 1
+    faults:
+      noise_g: 0.2            # standard deviation of the load-cell reading
+      drift_g_per_day: 0.0    # grams added per simulated day
+      stuck_from_day: null    # freeze the register from this simulated day (status stays 0)
+      hard_fault_from_day: null  # set status register 40003 = 1 from this simulated day
+    src:
+      item: item_dict
+      name: item_dict
+      vital: item_dict
+      unit_g: shortlist
+      units_per_box: shortlist
+      tare_g: sim_param
+      scale_k: computed
+      d_month: css_method
+      cv_weekly: css_method
+      deadband_units: sim_param
+      faults: sim_param
+
+  - bin: bin05
+    unit_id: 5
+    item: "103015801"
+    name: "Hydroxyzine 10 mg/5 ml syrup, bottle 180-200 ml, oral"
+    vital: false
+    unit_g: 250.0
+    units_per_box: 1
+    tare_g: 1500
+    scale_k: 1
+    d_month: 17.3
+    cv_weekly: 0.514
+    deadband_units: 1
+    faults:
+      noise_g: 0.2            # standard deviation of the load-cell reading
+      drift_g_per_day: 0.0    # grams added per simulated day
+      stuck_from_day: null    # freeze the register from this simulated day (status stays 0)
+      hard_fault_from_day: null  # set status register 40003 = 1 from this simulated day
+    src:
+      item: item_dict
+      name: item_dict
+      vital: item_dict
+      unit_g: shortlist
+      units_per_box: shortlist
+      tare_g: sim_param
+      scale_k: computed
+      d_month: css_method
+      cv_weekly: css_method
+      deadband_units: sim_param
+      faults: sim_param
+
+  - bin: bin06
+    unit_id: 6
+    item: "103016601"
+    name: "Chlorphenamine maleate 2-2.5 mg/5 ml syrup, bottle 120 ml, oral"
+    vital: false
+    unit_g: 154.0
+    units_per_box: 72
+    tare_g: 1500
+    scale_k: 2
+    d_month: 75.7
+    cv_weekly: 0.528
+    deadband_units: 2
+    faults:
+      noise_g: 0.2            # standard deviation of the load-cell reading
+      drift_g_per_day: 0.0    # grams added per simulated day
+      stuck_from_day: null    # freeze the register from this simulated day (status stays 0)
+      hard_fault_from_day: null  # set status register 40003 = 1 from this simulated day
+    src:
+      item: item_dict
+      name: item_dict
+      vital: item_dict
+      unit_g: shortlist
+      units_per_box: shortlist
+      tare_g: sim_param
+      scale_k: computed
+      d_month: css_method
+      cv_weekly: css_method
+      deadband_units: sim_param
+      faults: sim_param

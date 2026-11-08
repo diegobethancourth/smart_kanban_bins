@@ -1,15 +1,83 @@
+# Smart Kanban Bins - whole stack.
+#
+#   Cloud demo (EMQX Cloud + InfluxDB Cloud):   docker compose up --build
+#   Fully local fallback (no internet needed):  docker compose --profile local --env-file .env.local up --build
+#
+# Copy .env.example to .env (or .env.local.example to .env.local) and fill it in first.
+
 services:
-  simulator:
+  simulator:                    # six load cells, Modbus TCP on 5020 (T1.2, T2.2, T2.3, T3.1)
     build:
       context: ./simulator
     env_file:
-      - .env
-
-  edge:
-    image: nodered/node-red:latest
+      - ${ENV_FILE:-.env}
+    volumes:
+      - ./config:/config:ro
+      - ./data:/data:ro
     ports:
-      - "1880:1880"
+      - "5020:5020"             # so modpoll on the host can read the registers
+    restart: unless-stopped
+
+  edge:                         # Node-RED gateway (T1.4-T1.5, T2.4, T2.6, T3.2-T3.4, T3.7)
+    build:
+      context: ./edge
+    env_file:
+      - ${ENV_FILE:-.env}
+    environment:
+      MODBUS_HOST: simulator
+      MODBUS_PORT: "5020"
+      BINS_CONFIG: /config/bins.json
     volumes:
       - ./edge:/data
+      - ./config:/config:ro
+    ports:
+      - "1880:1880"
+    depends_on:
+      - simulator
+    restart: unless-stopped
+
+  ingest:                       # MQTT -> InfluxDB (T1.6, T2.7)
+    build:
+      context: ./cloud/ingest
     env_file:
-      - .env
+      - ${ENV_FILE:-.env}
+    restart: unless-stopped
+
+  grafana:                      # dashboard (T2.8, T3.5): http://localhost:3000
+    image: grafana/grafana-oss:12.0.2
+    env_file:
+      - ${ENV_FILE:-.env}
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/smart_kanban.json
+    volumes:
+      - ./dashboard/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./dashboard/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # ---- local fallback only (--profile local) ----
+  mosquitto:
+    profiles: ["local"]
+    image: eclipse-mosquitto:2.0.21
+    volumes:
+      - ./cloud/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports:
+      - "1883:1883"
+
+  influxdb:
+    profiles: ["local"]
+    image: influxdb:2.7.11
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_LOCAL_PASSWORD:-change-me-123}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+      DOCKER_INFLUXDB_INIT_RETENTION: 30d
+    ports:
+      - "8086:8086"

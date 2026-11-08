@@ -1,0 +1,259 @@
+[
+    {
+        "id": "edge_tab",
+        "type": "tab",
+        "label": "Edge gateway",
+        "disabled": false,
+        "info": "Smart Kanban Bins edge gateway (gw01).\n\nModbus poll of six bins -> units, deadband, heartbeat, fault flags -> P-240 reorder rule -> store-and-forward -> MQTT 5 over TLS (EMQX Cloud).\n\nEnvironment (from .env): MQTT_URL, MQTT_USER, MQTT_PASS, MODBUS_HOST, MODBUS_PORT."
+    },
+    {
+        "id": "c_overview",
+        "type": "comment",
+        "z": "edge_tab",
+        "name": "Smart Kanban edge: simulator (Modbus TCP) -> units / P-240 -> MQTT 5 over TLS",
+        "info": "See docs/register_map.md for the registers and docs/schema.md for the MQTT payloads.",
+        "x": 370,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "inj_poll",
+        "type": "inject",
+        "z": "edge_tab",
+        "name": "every 1 s",
+        "props": [],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "2",
+        "topic": "",
+        "x": 120,
+        "y": 120,
+        "wires": [
+            [
+                "fn_poll"
+            ]
+        ]
+    },
+    {
+        "id": "fn_poll",
+        "type": "function",
+        "z": "edge_tab",
+        "name": "Modbus poll (6 bins)",
+        "func": "// T1.4 / T2.3 - read the six bins once per tick from the inject node.\n// Each bin is its own Modbus unit ID with the same register map (docs/register_map.md):\n//   0-1 gross weight in mg (uint32, high word first), 2 status, 3-4 simulated minutes, 5 cycle\nconst client = context.get('client');\nconst bins = global.get('bins').bins;\nconst host = env.get('MODBUS_HOST') || 'simulator';\nconst port = Number(env.get('MODBUS_PORT') || 5020);\n\nif (context.get('busy')) return null;           // previous poll still running: skip this tick\ncontext.set('busy', true);\ntry {\n    if (!client.isOpen) {\n        node.status({ fill: 'yellow', shape: 'ring', text: `connecting ${host}:${port}` });\n        await client.connectTCP(host, { port });\n    }\n    const ts = new Date().toISOString();         // edge timestamp, used all the way to the database\n    let ok = 0;\n    for (const b of bins) {\n        client.setID(b.unit_id);\n        try {\n            const r = (await client.readHoldingRegisters(0, 6)).data;\n            node.send({\n                topic: b.bin,\n                payload: {\n                    ts, bin_id: b.bin,\n                    mg: r[0] * 65536 + r[1],         // decode the 32-bit weight\n                    status: r[2],\n                    sim_min: r[3] * 65536 + r[4],\n                    cycle: r[5],\n                },\n            });\n            ok += 1;\n        } catch (err) {\n            node.warn(`${b.bin} (unit ${b.unit_id}): ${err.message}`);\n        }\n    }\n    node.status(ok === bins.length\n        ? { fill: 'green', shape: 'dot', text: `${ok} bins read at ${ts.slice(11, 19)}` }\n        : { fill: 'red', shape: 'ring', text: `only ${ok} of ${bins.length} bins read at ${ts.slice(11, 19)}` });\n} catch (err) {\n    node.status({ fill: 'red', shape: 'ring', text: `simulator unreachable: ${err.message}` });\n    try { client.close(() => {}); } catch (e) { /* already closed */ }\n} finally {\n    context.set('busy', false);\n}\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "// T1.4 - one Modbus TCP client for all six bins (modbus-serial, loaded in settings.js)\nconst ModbusRTU = global.get('ModbusRTU');\nconst client = new ModbusRTU();\nclient.setTimeout(500);\ncontext.set('client', client);\ncontext.set('busy', false);\n",
+        "finalize": "const client = context.get('client');\nif (client && client.isOpen) client.close(() => {});\n",
+        "libs": [],
+        "x": 330,
+        "y": 120,
+        "wires": [
+            [
+                "fn_units",
+                "dbg_raw"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_raw",
+        "type": "debug",
+        "z": "edge_tab",
+        "name": "raw registers (T1.4)",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 580,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "fn_units",
+        "type": "function",
+        "z": "edge_tab",
+        "name": "Units, deadband, heartbeat, faults",
+        "func": "// T2.4 grams -> units, deadband and heartbeat; T3.2 fault flags.\n// Output 1: level message to publish (only when it changed enough, or for the heartbeat)\n// Output 2: every reading, to the P-240 node\nconst cfg = global.get('bins');\nconst p = msg.payload;\nconst bin = cfg.bins.find(b => b.bin === p.bin_id);\nif (!bin) return null;\nconst e = cfg.edge;\nconst st = context.get(bin.bin) || { lastMg: null, sameSince: p.sim_min, samePolls: 0,\n                                     pubUnits: null, pubStatus: null, pubAt: 0, cycle: p.cycle };\n\n// Units on the scale, then back to facility units with the scale factor k.\n// Math.round instead of floor: a small negative noise would otherwise drop a whole unit.\nconst grams = p.mg / 1000;\nconst units = Math.max(0, Math.round((grams - bin.tare_g) / bin.unit_g)) * bin.scale_k;\n\n// T3.2 - stuck sensor: real load cells always show some noise, so the same raw value\n// for many polls, while the average demand says units should have gone, means stuck.\nif (p.cycle !== st.cycle) {                        // replay restarted: start over\n    st.cycle = p.cycle; st.lastMg = null; st.samePolls = 0;\n}\nif (p.mg === st.lastMg) {\n    st.samePolls += 1;\n} else {\n    st.lastMg = p.mg; st.samePolls = 0; st.sameSince = p.sim_min;\n}\nconst expectedGone = bin.d_day * (p.sim_min - st.sameSince) / 1440;\nconst stuck = st.samePolls >= e.stuck_polls && expectedGone >= e.stuck_min_expected_units;\n\n// status: 0 OK, 1 fault reported by the sensor (register 40003), 2 stuck (detected here)\nlet status = 0, flag = 'ok';\nif (p.status === 1) { status = 1; flag = 'hard_fault'; }\nelse if (stuck) { status = 2; flag = 'stuck'; }\n\n// Deadband: publish only if units moved by at least deadband_units or the status changed;\n// heartbeat: publish anyway every heartbeat_s so the dashboard sees the bin is alive.\nconst now = Date.now();\nconst changed = st.pubUnits === null || Math.abs(units - st.pubUnits) >= bin.deadband_units\n                || status !== st.pubStatus;\nconst heartbeat = !changed && now - st.pubAt >= e.heartbeat_s * 1000;\nlet level = null;\nif (changed || heartbeat) {\n    st.pubUnits = units; st.pubStatus = status; st.pubAt = now;\n    level = {\n        topic: `css/${cfg.ue}/bins/${bin.bin}/level`, qos: 1, retain: true,\n        payload: { ts: p.ts, bin_id: bin.bin, item: bin.item, units,\n                   grams: Math.round(grams * 10) / 10, status, flag, rop: bin.ROP,\n                   sim_min: p.sim_min, cycle: p.cycle, heartbeat },\n    };\n}\ncontext.set(bin.bin, st);\nnode.status({ fill: status ? 'red' : 'green', shape: 'dot', text: `${bin.bin}: ${units} units ${flag}` });\nreturn [level, { topic: bin.bin, payload: { ts: p.ts, bin_id: bin.bin, units, status,\n                                            sim_min: p.sim_min, cycle: p.cycle } }];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 120,
+        "wires": [
+            [
+                "fn_sf",
+                "dbg_level"
+            ],
+            [
+                "fn_p240"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_level",
+        "type": "debug",
+        "z": "edge_tab",
+        "name": "level",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 870,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "fn_p240",
+        "type": "function",
+        "z": "edge_tab",
+        "name": "P-240 reorder (hysteresis)",
+        "func": "// T2.6 - P-240 reorder rule at the edge (edge/lib/p240.js), with hysteresis.\n// Output 1: reorder event, css/{ue}/bins/{bin}/reorder (QoS 1, not retained)\n// Output 2: the same event as a GS1 EPCIS 2.0 ObjectEvent (T3.7), css/{ue}/bins/{bin}/epcis\nconst cfg = global.get('bins');\nconst p240 = global.get('p240');\nconst epcis = global.get('epcis');\nconst r = msg.payload;\nconst bin = cfg.bins.find(b => b.bin === r.bin_id);\nif (!bin) return null;\n\n// T3.2 - a flagged bin (hard fault or stuck) never triggers a reorder: flag, don't order\nif (r.status !== 0) {\n    node.status({ fill: 'red', shape: 'ring', text: `${bin.bin} flagged: reorder suppressed` });\n    return null;\n}\n\nconst rop = p240.computeRop(bin, cfg.p240);\nconst res = p240.check(context.get(bin.bin), r.units, rop.rop, cfg.p240.rearm_margin);\ncontext.set(bin.bin, res.state);\nif (!res.fire) return null;\n\nconst ev = Object.assign(p240.reorderEvent(bin, r.units, rop, r.ts),\n                         { sim_min: r.sim_min, cycle: r.cycle });\nnode.status({ fill: 'yellow', shape: 'dot', text: `REORDER ${bin.bin}: ${r.units} <= ${ev.rop}` });\nreturn [\n    { topic: `css/${cfg.ue}/bins/${bin.bin}/reorder`, qos: 1, retain: false, payload: ev },\n    { topic: `css/${cfg.ue}/bins/${bin.bin}/epcis`, qos: 1, retain: false,\n      payload: epcis.fromReorder(ev, cfg.ue) },\n];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 220,
+        "wires": [
+            [
+                "fn_sf",
+                "dbg_reorder"
+            ],
+            [
+                "fn_sf"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_reorder",
+        "type": "debug",
+        "z": "edge_tab",
+        "name": "reorder",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "fn_sf",
+        "type": "function",
+        "z": "edge_tab",
+        "name": "Store-and-forward",
+        "func": "// T3.3 - store-and-forward. Messages pass straight through while the broker is connected.\n// While it is down they wait in a queue in the 'file' context store (survives a restart),\n// and on reconnect they are sent in order, before any new message.\n// Two inputs: the messages to publish, and status updates of the mqtt out node (Status node).\n// Node-RED's MQTT node silently drops a publish while it is disconnected, and its status\n// arrives a moment after the link breaks; so the messages sent in the last RECENT_MS are\n// kept and put back at the head of the queue when the broker goes down. A message that did\n// arrive may then be sent twice: harmless, it lands on the same InfluxDB point (QoS 1 =\n// at least once).\nconst QUEUE = 'queue', STORE = 'file', MAX_QUEUE = 50000, BATCH = 50, RECENT_MS = 5000;\n\nfunction remember(m) {                              // keep what was sent in the last RECENT_MS\n    const now = Date.now();\n    const recent = (context.get('recent') || []).filter(r => now - r.t < RECENT_MS);\n    recent.push({ t: now, m });\n    context.set('recent', recent);\n}\n\nfunction show() {\n    const n = (context.get(QUEUE, STORE) || []).length;\n    if (context.get('up') === true && n === 0) node.status({ fill: 'green', shape: 'dot', text: 'broker connected' });\n    else node.status({ fill: 'yellow', shape: 'ring', text: `${context.get('up') ? 'sending backlog' : 'broker down'}: ${n} queued` });\n}\n\nfunction flush() {\n    if (context.get('flushing')) return;\n    context.set('flushing', true);\n    const step = () => {\n        const q = context.get(QUEUE, STORE) || [];\n        if (q.length === 0 || context.get('up') !== true) {\n            context.set('flushing', false); show(); return;\n        }\n        const batch = q.splice(0, BATCH);\n        context.set(QUEUE, q, STORE);\n        batch.forEach(m => { remember(m); node.send(m); });\n        show();\n        setTimeout(step, 100);\n    };\n    step();\n}\n\nif (msg.status) {                                   // from the Status node\n    const up = msg.status.fill === 'green';\n    const wasUp = context.get('up') === true;\n    context.set('up', up);\n    if (!up && wasUp) {                             // link just dropped: re-queue the last few seconds\n        const recent = (context.get('recent') || []).map(r => r.m);\n        context.set('recent', []);\n        context.set(QUEUE, recent.concat(context.get(QUEUE, STORE) || []), STORE);\n    }\n    if (up && !wasUp) flush();\n    show();\n    return null;\n}\n\nconst q = context.get(QUEUE, STORE) || [];\nconst m = { topic: msg.topic, payload: msg.payload, qos: msg.qos, retain: msg.retain };\nif (context.get('up') === true && q.length === 0 && !context.get('flushing')) {\n    remember(m);\n    return m;\n}\nq.push(m);\nif (q.length > MAX_QUEUE) q.shift();               // keep the newest if the outage is very long\ncontext.set(QUEUE, q, STORE);\nshow();\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "// After a deploy or restart: not connected until the Status node says so, no flush running.\n// (The queue itself is kept in the 'file' store and is sent once the broker is connected.)\ncontext.set('up', false);\ncontext.set('flushing', false);\ncontext.set('recent', []);\n",
+        "finalize": "",
+        "libs": [],
+        "x": 900,
+        "y": 160,
+        "wires": [
+            [
+                "mqtt_out"
+            ]
+        ]
+    },
+    {
+        "id": "st_mqtt",
+        "type": "status",
+        "z": "edge_tab",
+        "name": "broker connection",
+        "scope": [
+            "mqtt_out"
+        ],
+        "x": 670,
+        "y": 300,
+        "wires": [
+            [
+                "fn_sf"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out",
+        "type": "mqtt out",
+        "z": "edge_tab",
+        "name": "publish (topic, QoS, retain from msg)",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt_broker",
+        "x": 1160,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "tls_emqx",
+        "type": "tls-config",
+        "name": "TLS: verify the server certificate (EMQX uses a public CA)",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "",
+        "servername": "",
+        "verifyservercert": true,
+        "alpnprotocol": ""
+    },
+    {
+        "id": "mqtt_broker",
+        "type": "mqtt-broker",
+        "name": "EMQX Cloud (MQTT_URL)",
+        "broker": "${MQTT_URL}",
+        "port": "",
+        "clientid": "edge-gw01",
+        "autoConnect": true,
+        "usetls": true,
+        "tls": "tls_emqx",
+        "verifyservercert": true,
+        "protocolVersion": "5",
+        "keepalive": "30",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "css/UE-A/edge/gw01/status",
+        "birthQos": "1",
+        "birthRetain": "true",
+        "birthPayload": "online",
+        "birthMsg": {},
+        "closeTopic": "css/UE-A/edge/gw01/status",
+        "closeQos": "1",
+        "closeRetain": "true",
+        "closePayload": "offline",
+        "closeMsg": {},
+        "willTopic": "css/UE-A/edge/gw01/status",
+        "willQos": "1",
+        "willRetain": "true",
+        "willPayload": "offline",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
