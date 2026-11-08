@@ -46,7 +46,7 @@ scaled_units = round(stock_units / k)
 weight_g     = tare_g + scaled_units × unit_g + sensor error
 ```
 
-The edge converts back before applying P-240: `stock_units = k × floor((weight_g − tare_g) / unit_g)`.
+The edge converts back before applying P-240: `stock_units = k × round((weight_g − tare_g) / unit_g)` (round rather than floor, so a small negative noise does not drop a whole unit; see `docs/decisions.md`).
 Proportional scaling does not change when the stock crosses the ROP, so the reorder events and the detection-latency analysis are unaffected. The resolution becomes k units (5 for paracetamol, 2 for chlorphenamine, 1 for the rest).
 
 ## What is real and what is simulated
