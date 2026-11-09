@@ -51,7 +51,9 @@ One entry per decision: date, what was decided, and why.
 - **Decision:** `docker compose --profile local` adds a local Mosquitto broker and a local InfluxDB, with `.env.local.example`.
 - **Why:** if campus Wi-Fi blocks 8883 and 8084, or a cloud account fails on demo day, the same demo runs on the laptop with no internet. The flows and the dashboard are the same; only the URLs change.
 
-## Pending · Port 8883 test (T0.3)
+## 2026-11-09 · Port 8883 test on campus Wi-Fi (T0.3)
 
-- Still to do on campus Wi-Fi and in the demo room (needs the EMQX address): `Test-NetConnection <host> -Port 8883` in PowerShell. If blocked, set `MQTT_URL=wss://<host>:8084/mqtt` in `.env`; if both are blocked, use the local fallback stack.
-- **Result:** _to be written here._
+- **Test:** `Test-NetConnection broker.emqx.io -Port 8883` and `-Port 8084` in PowerShell, on ASU campus Wi-Fi (Polytechnic campus, 9 Nov 2026, 16:20 MST). `broker.emqx.io` is EMQX's public broker on the same ports as our Serverless deployment, so it shows whether the campus network blocks them.
+- **Result:** `TcpTestSucceeded : True` for **both 8883** (MQTT over TLS) **and 8084** (MQTT over secure WebSockets).
+- **Decision:** keep `MQTT_URL=mqtts://<host>:8883` as the main path. `wss://<host>:8084/mqtt` is confirmed as a working fallback, and the local stack (`--profile local`) stays as the last resort.
+- **To repeat** in the demo room before class with our own EMQX address (step 1 of `docs/demo_script.md`).
