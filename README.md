@@ -113,7 +113,12 @@ and never reorders; 109 of 109 messages arrive after a 30 s broker outage (store
 
 ![Simulator faults](docs/img/faults.png)
 
-Dashboard screenshots: to be added from the first full run against the cloud services (`docs/img/`).
+**First run against the cloud services (14 Nov 2026):** the dashboard reading InfluxDB Cloud, and the
+same messages seen in MQTT Explorer on EMQX Cloud (TLS, port 8883).
+
+![Grafana dashboard during a replay](docs/img/dashboard.png)
+
+![MQTT messages on EMQX Cloud](docs/img/mqtt_explorer.png)
 
 ## Documentation
 
