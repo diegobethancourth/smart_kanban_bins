@@ -206,8 +206,8 @@ a{color:var(--accent);text-underline-offset:2px}
     <div><b>M1 · Mon 2 Nov</b><span>One bin end to end: Modbus → edge → MQTT/TLS → cloud database</span></div>
     <div><b>M2 · Mon 16 Nov</b><span>Six bins replaying SALMI series; P-240 reorder events in the database</span></div>
     <div><b>M3 · Tue 24 Nov</b><span>Faults, buffering, dashboard and detection-latency results complete</span></div>
-    <div><b>M4 · Tue 1 Dec</b><span>Code frozen, README done, backup video recorded, two timed rehearsals</span></div>
-    <div><b>M5 · 2 Dec / 4 Dec</b><span>Live demonstration (Wed) · public GitHub repository submitted (Fri)</span></div>
+    <div><b>M4 · Tue 1 Dec</b><span>Code frozen, README to rubric, backup video, 15-minute deck, two timed rehearsals with every member</span></div>
+    <div><b>M5 · 2 Dec / 4 Dec</b><span>15-minute presentation with demo, deck uploaded (Wed) · GitHub page URL submitted (Fri)</span></div>
   </div>
 </section>
 
@@ -317,7 +317,7 @@ a{color:var(--accent);text-underline-offset:2px}
     <ul>
       <li><b>Port 8883 blocked</b> on the campus or demo network. Test it in T0.3; fallback is MQTT over secure WebSockets or a phone hotspot.</li>
       <li><b>Free-tier limits</b> on EMQX Cloud or InfluxDB Cloud. InfluxDB keeps data for 30 days only, so run a fresh replay in the last week before the demo. Keep message rates low (deadband, heartbeat) and check each plan's limits in T0.2.</li>
-      <li><b>Live demo failure.</b> The backup video (T4.4) is recorded from the frozen build.</li>
+      <li><b>Live demo failure.</b> The 4-minute backup video (T4.4) is recorded from the frozen build.</li>
       <li><b>Thanksgiving, 26–27 Nov.</b> Little or no work is planned on those two days.</li>
     </ul>
   </div>
@@ -487,40 +487,50 @@ const P = [
    "Generate it in a Function node and publish it on its own topic.",
    "Validate one example against the EPCIS 2.0 JSON schema and save it in <code>docs/</code>."]]]],
  ["4","Freeze and rehearse","25 Nov – 1 Dec · M4",[
-  ["T4.1","Code freeze","Code freeze: bug fixes only after this date","Tag v1.0 on main","ALL","11-25","11-25","M3",[
-   "Merge all open feature pull requests or move them to after the demo.",
+  ["T4.1","Code freeze","Code freeze: bug fixes only after this date","Tag v1.0 on main","DB","11-22","11-25","M3",[
+   "Merge or close every open pull request.",
    "Tag the release: <code>git tag v1.0</code> then <code>git push origin v1.0</code>.",
    "From now on, only bug-fix pull requests, each reviewed."]],
-  ["T4.2","README","README: summary of up to 200 words, architecture figure, reproduction steps, screenshots","A member who did not write it reproduces the demo from a clean clone","FR","11-25","11-30","T4.1",[
-   "Write the summary (200 words or fewer), the architecture figure from the deck, the folder layout and the reproduction steps.",
-   "Reproduction: clone, copy <code>.env.example</code> to "+ENV+" and fill it in, run <code>docker compose up --build</code>, open the dashboard.",
-   "Add the dashboard screenshots and the latency result, with its limits.",
-   "Ask a member who did not write it to follow the README on a clean clone, and fix every gap they hit."]],
-  ["T4.3","Privacy and quality pass","Privacy and quality pass: comments in all modules, no credentials or facility names in files or git history","Checklist signed off by all three members","DB","11-25","11-30","T4.1",[
+  ["T4.2","README (GitHub rubric)","README written to the GitHub-page rubric: summary of up to 200 words, system overview with the architecture image, step-by-step run instructions, expected output","A member who did not write it reproduces the demo from a clean clone using only the README","DB","11-22","11-30","T4.1",[
+   "<b>Rubric 2a</b> Project summary (objective and problem solved), 200 words or fewer.",
+   "<b>Rubric 2b</b> System overview: tools, methods and the architecture image (the same five-layer diagram as the slides).",
+   "<b>Rubric 2c</b> How to run, step by step, written as a tutorial (clone, "+ENV+", <code>docker compose up</code>, open the dashboard), including the local fallback without cloud accounts.",
+   "<b>Rubric 2d</b> Expected output: dashboard and MQTT screenshots, the latency result with its limits.",
+   "Ask Febylina to follow the README on a clean clone and fix every gap she hits."]],
+  ["T4.3","Privacy and quality pass","Privacy and quality pass: comments in all modules, no credentials or facility names in files or git history","Checklist signed off by all three members","DB","11-22","11-30","T4.1",[
    "Search the files: <code>git grep -n -i -E \"password|token|secret|emqxsl|influxdata\"</code>, plus the real facility names.",
    "Search the history as well: <code>git log -p | grep -i -E \"password|token\"</code>.",
    "If a secret was ever committed, change that password or token in the service console straight away. Removing it from the history is not enough.",
    "Check every module has a header comment and comments on non-obvious steps.",
    "All three members tick the checklist in <code>docs/checklist.md</code>."]],
-  ["T4.4","Backup video","Record the backup video of the full demo (5–7 min)","Video file uploaded to the team drive","DJ","11-28","11-30","T4.1",[
-   "Run the frozen build (tag v1.0) with a fresh full replay; the InfluxDB free plan keeps only 30 days of data.",
-   "Record with <a href='https://obsproject.com/'>OBS Studio</a>: simulator running, edge flow, a reorder event arriving, the dashboard, the fault and reconnect demonstration.",
-   "Keep it between 5 and 7 minutes, following the demo script.",
-   "Upload it to the team drive and test that it plays on the demo computer."]],
-  ["T4.5","Demo script and rehearsals","Demo script and two timed rehearsals with one presenter","Both runs end within 5–7 minutes","ALL","11-29","12-01","T4.4",[
-   "Write the script: what is shown, in which order, and what is said at each step.",
-   "Choose the presenter.",
+  ["T4.4","Backup video","Pre-record the 4-minute demo as a backup (rubric section 4)","Video saved in the team folder and plays on the presentation computer","DB","11-24","11-28","T4.1",[
+   "Run the frozen build (tag v1.0) with a fresh replay; the InfluxDB free plan keeps only 30 days of data.",
+   "Show, in order: data generation (simulator), message transmission (MQTT Explorer), edge logic (Node-RED, a reorder), cloud reception and storage (InfluxDB), dashboard (Grafana).",
+   "Keep it to about 4 minutes. Record with <b>Win + Alt + R</b> (Xbox Game Bar) or OBS Studio.",
+   "Save it in the team folder and test that it plays on the computer used in class."]],
+  ["T4.5","Slide deck","15-minute slide deck in the ASU template, following the professor's suggested structure","Deck covers sections 0–6 and includes one diagram with all five IIoT layers","DB","11-22","11-27","M3",[
+   "<b>0 Title (0:30)</b> project name, team members, one-sentence problem statement.",
+   "<b>1 Problem and objectives (1 min)</b> real-world problem, what the prototype demonstrates, why IIoT is needed.",
+   "<b>2 Architecture (2 min)</b> one diagram with the physical device, network, edge, cloud and application layers; data flow; why each technology was chosen.",
+   "<b>3 Layer by layer (6 min)</b> device (simulated load cells, realism from SALMI data), network (Modbus TCP, MQTT 5 over TLS, JSON payload and topics), edge (Node-RED: aggregation, buffering, protocol translation, P-240 analytics, security), cloud (EMQX Cloud, ingest, InfluxDB Cloud, latency analysis), application (Grafana, alerts, EPCIS events).",
+   "<b>4 Demo (4 min)</b> live, with the backup video ready.",
+   "<b>5 Results, challenges, lessons (1 min)</b> and <b>6 Conclusion and extensions (0:30)</b>.",
+   "Clean slides, clear diagrams and screenshots, animations only where they help (rubric section 2)."]],
+  ["T4.6","Speaker split and rehearsals","Every member presents a part; two timed rehearsals of the full 15 minutes","Both rehearsals end within 15 ± 1 minutes, with every member speaking","ALL","11-28","12-01","T4.4, T4.5",[
+   "Assign the sections: all group members have to present.",
+   "Each member rehearses their part and can answer questions about the components they present (rubric section 4).",
    "Rehearse twice with a timer, on the network you will use in class.",
    "Agree the signal for switching to the backup video if the live demo fails. Milestone M4 is reached."]]]],
  ["5","Deliver","2 Dec · 4 Dec · M5",[
-  ["T5.1","Live demonstration","Live demonstration in class","Delivered within 5–7 minutes","ALL","12-02","12-02","T4.5",[
-   "Arrive early, connect to the room network and check port 8883 (or the fallback).",
-   "Start the stack 15 minutes before and confirm data reaches the dashboard.",
-   "Have the backup video open and ready."]],
-  ["T5.2","Final repo check, submit","Final check of the public repository and submit the link","Link submitted on Canvas; a clean clone runs from the README alone","FR","12-03","12-04","T4.2, T4.3",[
-   "Clone the repository into a new folder and follow the README once more.",
-   "Confirm the work plan page and the README load without signing in.",
-   "Submit the repository link on Canvas."]]]]
+  ["T5.1","Final presentation and demo","Upload the slide deck on Canvas before the session, then present for 15 minutes with the demo","Deck uploaded; presentation delivered within 15 ± 1 minutes with an end-to-end demo","ALL","12-02","12-02","T4.6",[
+   "Upload the deck on Canvas (Group Project Final Presentation) before the session, with the GitHub link.",
+   "Arrive early, connect to the room network and check port 8883 (fallback: 8084, then the local stack).",
+   "Start the stack 15 minutes before and confirm data reaches the dashboard. Keep the backup video open."]],
+  ["T5.2","GitHub page submitted","Final check of the public repository against the GitHub-page rubric, then submit the URL","URL submitted on Canvas; a clean clone runs from the README alone","DB","12-03","12-04","T4.2, T4.3",[
+   "<b>Rubric 1</b> public, clean and organised repository with all code (simulator, Node-RED flows, ingest, dashboard) and the sample dataset (<code>data/series</code>).",
+   "<b>Rubric 2</b> README complete (summary, system overview, how to run, expected output).",
+   "Clone into a new folder and follow the README once more; confirm the repository and the work plan load without signing in.",
+   "Submit the repository URL on Canvas (Github page)."]]]]
 ];
 const OWNER="diegobethancourth", REPO="smart_kanban_bins", SPATH="docs/status.json", API=`https://api.github.com/repos/${OWNER}/${REPO}`;
 let done={}, statusSrc=null, statusAt=null, busy=false, panelMsg="";
