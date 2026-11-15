@@ -92,3 +92,15 @@ from(bucket: "smart_kanban")
 ```
 
 (Paracetamol, bin02, has no reorder points: its stock never falls below its ROP in the series.)
+
+## 3D twin feed (edge websocket, T4.7)
+
+Node-RED also sends JSON text frames to `ws://<edge>:1880/ws/twin` for the 3D shelf twin
+(`docs/twin`). The feed is read-only and is not published to the broker.
+
+| `type` | Fields | When |
+|---|---|---|
+| `reading` | `payload`: `ts`, `bin_id`, `units`, `status`, `sim_min`, `cycle` | every poll (1 s) of every bin, before the deadband |
+| `sent` | `topic`, `payload` (the MQTT payload) | every message the store-and-forward node hands to the broker, backlog included |
+| `node_status` | `node` (`mqtt_out` or `fn_sf`), `fill`, `text` | broker link and queue changes, repeated every 5 s |
+

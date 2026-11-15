@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 YAML_PATH = ROOT / "config" / "bins.yaml"
 JSON_PATH = ROOT / "config" / "bins.json"
 SERIES_DIR = ROOT / "data" / "series"
+TWIN_PATH = ROOT / "docs" / "twin" / "twin_data.json"   # config + series for the 3D twin demo mode
 
 MAX_NET_G = 15000          # one bin must not carry more than 15 kg of product
 SCALE_STEPS = [1, 2, 5, 10, 20, 50, 100]
@@ -103,21 +104,42 @@ def build(cfg):
     }
 
 
+def twin_data(out):
+    """Config plus the report series, so the 3D twin can replay in the browser (demo mode)."""
+    first = date.fromisoformat(out["first_date"])
+    series = {}
+    for b in out["bins"]:
+        rows = read_series(b)
+        series[b["bin"]] = [[(d - first).days, s] for d, s, _ in rows]
+    data = {k: v for k, v in out.items() if k != "bins"}
+    data["_generated"] = "by tools/build_config.py - do not edit by hand"
+    data["bins"] = [{k: b[k] for k in ("bin", "unit_id", "item", "name", "vital", "unit_g",
+                                       "tare_g", "max_stock", "d_day", "SS", "ROP", "deadband_units", "faults")}
+                    for b in out["bins"]]
+    data["series"] = series
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="fail if bins.json is out of date")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(YAML_PATH.read_text())
-    text = json.dumps(build(cfg), indent=2, ensure_ascii=False) + "\n"
+    out = build(cfg)
+    text = json.dumps(out, indent=2, ensure_ascii=False) + "\n"
+    twin = twin_data(out)
 
     if args.check:
         if JSON_PATH.read_text() != text:
             sys.exit("config/bins.json is out of date: run python tools/build_config.py")
-        print("config/bins.json is up to date")
+        if not TWIN_PATH.exists() or TWIN_PATH.read_text() != twin:
+            sys.exit("docs/twin/twin_data.json is out of date: run python tools/build_config.py")
+        print("config/bins.json and docs/twin/twin_data.json are up to date")
         return
     JSON_PATH.write_text(text)
-    print(f"wrote {JSON_PATH.relative_to(ROOT)} ({len(cfg['bins'])} bins)")
+    TWIN_PATH.write_text(twin)
+    print(f"wrote {JSON_PATH.relative_to(ROOT)} and {TWIN_PATH.relative_to(ROOT)} ({len(cfg['bins'])} bins)")
 
 
 if __name__ == "__main__":

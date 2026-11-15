@@ -93,7 +93,8 @@
                 "dbg_level"
             ],
             [
-                "fn_p240"
+                "fn_p240",
+                "fn_twin"
             ]
         ]
     },
@@ -171,7 +172,8 @@
         "y": 160,
         "wires": [
             [
-                "mqtt_out"
+                "mqtt_out",
+                "fn_twin"
             ]
         ]
     },
@@ -255,5 +257,69 @@
         "willMsg": {},
         "userProps": "",
         "sessionExpiry": ""
+    },
+    {
+        "id": "c_twin",
+        "type": "comment",
+        "z": "edge_tab",
+        "name": "T4.7 3D shelf twin: http://localhost:1880/twin/ (local source = this websocket)",
+        "info": "Read-only tap for docs/twin. Sends every reading, every message sent to the broker and the broker/queue status to ws://<edge>:1880/ws/twin.",
+        "x": 420,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "st_twin",
+        "type": "status",
+        "z": "edge_tab",
+        "name": "broker and queue status",
+        "scope": [
+            "mqtt_out",
+            "fn_sf"
+        ],
+        "x": 680,
+        "y": 440,
+        "wires": [
+            [
+                "fn_twin"
+            ]
+        ]
+    },
+    {
+        "id": "fn_twin",
+        "type": "function",
+        "z": "edge_tab",
+        "name": "3D twin feed",
+        "func": "// T4.7 - feed for the 3D shelf twin (docs/twin, served by Node-RED at /twin/).\n// Inputs: every reading (units node, output 2), every message actually sent to the broker\n// (store-and-forward output) and the status of the mqtt out and store-and-forward nodes.\n// Output: JSON text to the websocket ws://<edge>:1880/ws/twin.\n// Read-only: nothing here changes what the gateway publishes.\nconst statuses = context.get('statuses') || {};\nlet out;\nif (msg.status) {\n    out = { type: 'node_status', node: msg.status.source && msg.status.source.id,\n            fill: msg.status.fill, text: msg.status.text };\n    statuses[out.node] = out;                       // kept for twins that connect later\n    context.set('statuses', statuses);\n} else if (typeof msg.topic === 'string' && msg.topic.startsWith('css/')) {\n    out = { type: 'sent', topic: msg.topic, payload: msg.payload };     // left the gateway\n} else if (msg.payload && msg.payload.bin_id) {\n    out = { type: 'reading', payload: msg.payload };                    // 1 s reading of one bin\n} else {\n    return null;\n}\nconst msgs = [{ payload: JSON.stringify(out) }];\n// every 5 s repeat the last broker and queue status, so a twin opened later is up to date\nconst now = Date.now();\nif (now - (context.get('statusAt') || 0) > 5000) {\n    context.set('statusAt', now);\n    Object.values(statuses).forEach(s => msgs.push({ payload: JSON.stringify(s) }));\n}\nreturn [msgs];\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 920,
+        "y": 440,
+        "wires": [
+            [
+                "ws_twin"
+            ]
+        ]
+    },
+    {
+        "id": "ws_twin",
+        "type": "websocket out",
+        "z": "edge_tab",
+        "name": "/ws/twin",
+        "server": "ws_twin_listener",
+        "client": "",
+        "x": 1120,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "ws_twin_listener",
+        "type": "websocket-listener",
+        "path": "/ws/twin",
+        "wholemsg": "false"
     }
 ]
