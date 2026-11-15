@@ -520,7 +520,13 @@ const P = [
    "Assign the sections: all group members have to present.",
    "Each member rehearses their part and can answer questions about the components they present (rubric section 4).",
    "Rehearse twice with a timer, on the network you will use in class.",
-   "Agree the signal for switching to the backup video if the live demo fails. Milestone M4 is reached."]]]],
+   "Agree the signal for switching to the backup video if the live demo fails. Milestone M4 is reached."]],
+  ["T4.7","3D shelf twin (extension)","Browser 3D digital twin of the six bins, fed by the edge, by the cloud broker or by an in-browser replay","The twin shows the same units, reorders, faults and broker outage as the dashboard, in all three modes","DB","11-15","11-22","M3",[
+   "Page in <code>docs/twin/</code> (three.js and mqtt.js vendored, so it works offline), served by Node-RED at <code>http://localhost:1880/twin/</code> and by GitHub Pages.",
+   "<b>Edge (local)</b>: Function node <i>3D twin feed</i> sends every reading, every message sent to the broker and the broker/queue status to the websocket <code>/ws/twin</code>.",
+   "<b>Cloud (MQTT)</b>: subscribes to <code>css/UE-A/#</code> over secure WebSocket (EMQX port 8084) with a subscribe-only user; credentials stay in the browser.",
+   "<b>Replay</b>: <code>twin_data.json</code> (written by <code>tools/build_config.py</code>) replays the SALMI series with the same ROP, hysteresis and fault rules; buttons for a stuck load cell, a sensor fault and a network cut.",
+   "Test all three modes against the local chain, including a broker outage and the backlog flush."]]]],
  ["5","Deliver","2 Dec · 4 Dec · M5",[
   ["T5.1","Final presentation and demo","Upload the slide deck on Canvas before the session, then present for 15 minutes with the demo","Deck uploaded; presentation delivered within 15 ± 1 minutes with an end-to-end demo","ALL","12-02","12-02","T4.6",[
    "Upload the deck on Canvas (Group Project Final Presentation) before the session, with the GitHub link.",

@@ -25,6 +25,10 @@ module.exports = {
 
   uiPort: process.env.PORT || 1880,
 
+  // T4.7 - the 3D shelf twin (docs/twin) at http://localhost:1880/twin/
+  // In Docker docs/twin is mounted on /twin; elsewhere set TWIN_DIR.
+  httpStatic: [{ path: process.env.TWIN_DIR || '/twin', root: '/twin/' }],
+
   // Shared with every Function node through global.get(...)
   functionGlobalContext: {
     ModbusRTU: load('modbus-serial'),                                    // Modbus TCP client

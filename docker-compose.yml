@@ -18,7 +18,7 @@ services:
       - "5020:5020"             # so modpoll on the host can read the registers
     restart: unless-stopped
 
-  edge:                         # Node-RED gateway (T1.4-T1.5, T2.4, T2.6, T3.2-T3.4, T3.7)
+  edge:                         # Node-RED gateway (T1.4-T1.5, T2.4, T2.6, T3.2-T3.4, T3.7, T4.7)
     build:
       context: ./edge
     env_file:
@@ -30,6 +30,7 @@ services:
     volumes:
       - ./edge:/data
       - ./config:/config:ro
+      - ./docs/twin:/twin:ro      # 3D shelf twin at http://localhost:1880/twin/
     ports:
       - "1880:1880"
     depends_on:
@@ -67,6 +68,7 @@ services:
       - ./cloud/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     ports:
       - "1883:1883"
+      - "9001:9001"             # MQTT over WebSocket for the 3D twin (Cloud mode, ws://localhost:9001)
 
   influxdb:
     profiles: ["local"]

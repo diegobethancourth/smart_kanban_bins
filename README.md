@@ -48,7 +48,7 @@ edge/        Node-RED flow, settings, lib/p240.js (P-240 rule), lib/epcis.js, te
 cloud/       ingest service (MQTT → InfluxDB), local Mosquitto config
 dashboard/   Grafana provisioning and dashboard JSON
 tools/       config builder and checker, fault plot, EPCIS validator, latency analysis
-docs/        work plan (GitHub Pages), register map, schema, decisions, latency, checklist, demo script
+docs/        work plan (GitHub Pages), 3D shelf twin (docs/twin), register map, schema, decisions, latency, checklist, demo script
 ```
 
 ## Reproduce the demo
@@ -69,6 +69,7 @@ Then open:
 |---|---|
 | Dashboard | http://localhost:3000 |
 | Node-RED edge flow | http://localhost:1880 |
+| 3D shelf twin | http://localhost:1880/twin/ |
 | Raw MQTT messages | MQTT Explorer → your EMQX address, port 8883, TLS on, subscribe `css/#` |
 | Modbus registers | `modpoll -m tcp -p 5020 -a 1 -r 1 -c 6 localhost` |
 
@@ -85,6 +86,23 @@ On a Linux host, if Node-RED cannot write to its folder, run `sudo chown -R 1000
 cp .env.local.example .env.local
 docker compose --profile local --env-file .env.local up --build
 ```
+
+## 3D shelf twin
+
+A browser digital twin of the shelf: six bins on load-cell plates, filled with the item each one
+holds, a gold ring at the P-240 reorder point, the Node-RED gateway and the cloud. A bin turns gold
+at or below its ROP, flashes on a reorder and turns red when its sensor is flagged; small packets
+show the Modbus polls and every MQTT message leaving the gateway. Click a bin to see its P-240 values.
+
+| Source | What feeds it |
+|---|---|
+| Edge (local) | the running gateway: Node-RED serves the page at http://localhost:1880/twin/ and streams every reading, every message sent and the broker/queue status on `ws://localhost:1880/ws/twin` |
+| Cloud (MQTT) | the broker over secure WebSocket (EMQX Cloud: `wss://<deployment>:8084/mqtt`; local profile: `ws://localhost:9001`). Use a subscribe-only user; the URL and credentials stay in your browser |
+| Replay | no services needed: the SALMI series replayed in the browser with the same ROP, hysteresis and fault rules, with buttons for a stuck load cell, a sensor fault and a network cut |
+
+Online (replay, or cloud with your credentials): https://diegobethancourth.github.io/smart_kanban_bins/twin/
+
+![3D shelf twin](docs/img/twin.png)
 
 ## Tests
 
