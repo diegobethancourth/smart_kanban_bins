@@ -57,3 +57,13 @@ One entry per decision: date, what was decided, and why.
 - **Result:** `TcpTestSucceeded : True` for **both 8883** (MQTT over TLS) **and 8084** (MQTT over secure WebSockets).
 - **Decision:** keep `MQTT_URL=mqtts://<host>:8883` as the main path. `wss://<host>:8084/mqtt` is confirmed as a working fallback, and the local stack (`--profile local`) stays as the last resort.
 - **To repeat** in the demo room before class with our own EMQX address (step 1 of `docs/demo_script.md`).
+
+## 2026-11-15 · Store-and-forward test with the cloud services (T3.3)
+
+- **Test:** full stack on the demo laptop against EMQX Cloud and InfluxDB Cloud (`docker compose up -d`, 10 s per simulated day). Wi-Fi switched off for about 5 minutes and switched on again at about 02:33 MST.
+- **Proof that the link was really cut:** the `gateway` measurement received the edge's last will `offline` (sent by EMQX when the edge stopped answering) and then `online` at 02:33:24, as soon as the laptop was back.
+- **Result, from InfluxDB Cloud** (Flux through Grafana):
+  - `level` points per minute from 02:10 to 02:34: **every minute has data** (between 9 and 48 points), including the minutes while the laptop was offline. Those points arrived late, after reconnecting, and were stored at their edge timestamps.
+  - Largest gap between two stored points, per bin: **60 s for all six bins**, which is the heartbeat. No longer gap anywhere.
+  - Node-RED kept polling during the outage ("6 bins read"), and after reconnecting showed "broker connected" with an empty queue.
+- **Conclusion:** no data was lost while the network was down; done-when of T3.3 met.
