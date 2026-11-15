@@ -17,8 +17,8 @@ gw_id: gw01
 
 series:
   first_date: "2026-06-08"
-  last_date: "2026-10-17"
-  report_dates: 92
+  last_date: "2026-11-13"
+  report_dates: 109
 
 # P-240 rule: SS = z * sigma_d * sqrt(L), ROP = d_day * L + SS
 p240:

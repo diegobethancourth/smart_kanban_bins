@@ -3,8 +3,8 @@
   "ue": "UE-A",
   "gw_id": "gw01",
   "first_date": "2026-06-08",
-  "last_date": "2026-10-17",
-  "report_dates": 92,
+  "last_date": "2026-11-13",
+  "report_dates": 109,
   "p240": {
     "L_days": 20,
     "z_vital": 1.65,

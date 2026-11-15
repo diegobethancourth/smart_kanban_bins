@@ -1,6 +1,7 @@
 # Simulation data (UE-A)
 
-Stock series that drive the simulated load cells. One facility, six medicines, 92 report dates from 8 Jun to 17 Oct 2026.
+Stock series that drive the simulated load cells. One facility, six medicines, 109 report dates from 8 Jun to 13 Nov 2026
+(the first cut, used for the latency analysis, had 92 report dates up to 17 Oct 2026).
 
 ## Source
 
@@ -21,6 +22,22 @@ Stock series that drive the simulated load cells. One facility, six medicines, 9
 The source stores only the dates on which the stock changed. Each value holds until the next change, so the files repeat it on every report date.
 
 `../config/bins.json` contains the parameters of each bin. See the next section.
+
+## Refreshing the series before a demo
+
+The CSS facility replenishment dashboard publishes each facility's SALMI stock in a file
+`series_saldos_<facility>.json`. To extend the series to the latest report:
+
+```bash
+python tools/update_series.py <path/to/series_saldos_<facility>.json> --check   # compare only
+python tools/update_series.py <path/to/series_saldos_<facility>.json>           # write
+python tools/build_config.py && python -m pytest simulator/tests
+```
+
+The script applies the same cleaning as the first extraction and reproduces its 92 report dates
+exactly. The facility name stays outside the repository: only the anonymised UE-A series are written.
+The ROP values in `config/bins.yaml` are not changed by the refresh; update `d_month` and `cv_weekly`
+there if the CSS dashboard values change.
 
 ## Bin parameters
 
