@@ -97,7 +97,8 @@ and every MQTT message leaving the gateway. The L3 screen draws only what reache
 stops during a network cut and backfills from the edge queue. Each reorder opens a requisition on
 the L4 screen; when the stock shows the delivery, the requisition is closed with its actual lead
 time (compared with the L = 20 days that P-240 assumes) and the delivery flies back to the bin.
-Use the view buttons (Overview, Shelf, L3, L4) or click a screen; click a bin for its P-240 values.
+Each bin carries a smart-bin display with its Modbus unit ID, the gross weight its load cell
+reports (registers 40001-40002) and the units the edge computes. Use the view buttons (Overview, Shelf, L3, L4) or click a screen; click a bin for its P-240 values.
 
 | Source | What feeds it |
 |---|---|

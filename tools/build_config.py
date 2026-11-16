@@ -114,7 +114,7 @@ def twin_data(out):
     data = {k: v for k, v in out.items() if k != "bins"}
     data["_generated"] = "by tools/build_config.py - do not edit by hand"
     data["bins"] = [{k: b[k] for k in ("bin", "unit_id", "item", "name", "vital", "unit_g",
-                                       "tare_g", "max_stock", "d_day", "SS", "ROP", "deadband_units", "faults")}
+                                       "tare_g", "scale_k", "max_stock", "d_day", "SS", "ROP", "deadband_units", "faults")}
                     for b in out["bins"]]
     data["series"] = series
     return json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n"

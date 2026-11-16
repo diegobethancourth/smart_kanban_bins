@@ -205,6 +205,16 @@ DATA.bins.forEach((cfg, i) => {
   ring.children.forEach(m => { m.castShadow = false; });
   g.add(ring);
 
+  // smart-bin display on the front of the bin (like the e-paper label of an industrial smart bin):
+  // the load cell's Modbus unit ID, the gross weight it reports and the units the edge computes
+  const lcdC = document.createElement('canvas'); lcdC.width = 640; lcdC.height = 230;
+  const lcdT = new THREE.CanvasTexture(lcdC); lcdT.colorSpace = THREE.SRGBColorSpace; lcdT.anisotropy = 8;
+  const LW = 0.30, LH = 0.108, ly = PLATE + 0.075;
+  box(LW + 0.014, LH + 0.014, 0.008, dark, 0, ly, BD / 2 + 0.006, g).castShadow = false;
+  const lcd = new THREE.Mesh(new THREE.PlaneGeometry(LW, LH), new THREE.MeshBasicMaterial({ map: lcdT, toneMapped: false }));
+  lcd.position.set(0, ly, BD / 2 + 0.0105);
+  g.add(lcd);
+
   // label above the bin
   const el = document.createElement('div');
   el.className = 'tag';
@@ -227,7 +237,7 @@ DATA.bins.forEach((cfg, i) => {
   pickables.push(hit);
 
   bins.set(cfg.bin, {
-    cfg, g, inst, caps, slots, capacity, binMat, ringMat, led, el,
+    cfg, g, inst, caps, slots, capacity, binMat, ringMat, led, el, lcdC, lcdT, lcdKey: '',
     portWorld: new THREE.Vector3(x + BW / 2 - 0.035, base + PLATE / 2, BD / 2 - 0.01),
     shown: null, target: null, status: null, low: false, flashUntil: 0, lastReading: 0,
   });
@@ -751,6 +761,32 @@ function burst(b, text, cls = '') {
   })();
 }
 
+function drawLcd(b) {
+  const units = b.target, st = b.status || 0;
+  const grams = b.cfg.tare_g + units * b.cfg.unit_g / (b.cfg.scale_k || 1);
+  const key = units + '|' + st;
+  if (key === b.lcdKey) return;
+  b.lcdKey = key;
+  const c = b.lcdC.getContext('2d'), W = b.lcdC.width, H = b.lcdC.height;
+  const low = units <= b.cfg.ROP;
+  c.fillStyle = '#10151c'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#8C1D40'; c.fillRect(0, 0, W, 46);
+  c.fillStyle = '#fff'; c.font = '700 28px Segoe UI, Arial'; c.textBaseline = 'middle';
+  c.fillText(`KANBAN ${b.cfg.bin.toUpperCase()}`, 16, 24);
+  c.textAlign = 'right'; c.font = '600 24px Segoe UI, Arial'; c.fillStyle = '#FFC627';
+  c.fillText(`MODBUS ID ${b.cfg.unit_id}`, W - 16, 24); c.textAlign = 'left';
+  c.fillStyle = st ? '#ff8a8a' : '#7CF2A0'; c.font = '700 66px Consolas, monospace';
+  c.fillText(st === 2 ? '---- g' : fmt(grams, 1) + ' g', 16, 104);
+  c.fillStyle = '#9aa4b2'; c.font = '22px Segoe UI, Arial';
+  c.fillText('gross weight · registers 40001-40002 (mg)', 16, 152);
+  c.fillStyle = st ? '#ff8a8a' : low ? '#FFC627' : '#e8edf2'; c.font = '700 34px Segoe UI, Arial';
+  c.fillText(`${fmt(units)} units`, 16, 198);
+  c.textAlign = 'right'; c.font = '700 26px Segoe UI, Arial';
+  c.fillText(st === 1 ? 'SENSOR FAULT' : st === 2 ? 'STUCK' : low ? 'REORDER POINT' : 'OK', W - 16, 198);
+  c.textAlign = 'left';
+  b.lcdT.needsUpdate = true;
+}
+
 function paintBin(b) {
   const units = b.target;
   if (units == null) return;
@@ -767,6 +803,7 @@ function paintBin(b) {
   b.row.querySelector('.u').textContent = fmt(units);
   b.row.querySelector('.st').textContent = flag;
   b.row.querySelector('.bar i').style.width = Math.min(100, 100 * units / b.capacity) + '%';
+  drawLcd(b);
 }
 
 // ---------------------------------------------------------------- animation loop
