@@ -25,6 +25,18 @@ Result of the pass on 2026-11-07 (branch `feat/complete-pipeline`):
 - [x] All tests pass (32 Python, 5 JavaScript).
 - [ ] To decide: `docs/index.html` (work plan, T1.3) names the internal source folder `REPOSICION_UE_CSS` and the file type `series_saldos`. Not a secret, but it is an internal CSS path name.
 
+Second pass on 2026-11-15 (`main` at 85e704e, after the 3D twin, T4.7), files **and full history of all branches**:
+
+- [x] Files: only placeholders (`<your-deployment>.emqxsl.com`, `<region>.cloud2.influxdata.com`, `${MQTT_PASS}`)
+  and local-only test values (`local-only-token-change-me`, `local-only-password`); public links to sign-up pages.
+- [x] History: the same placeholders and local-only values; no real broker address, user, password or token.
+- [x] Real facility name: 0 matches in the files and 0 in the history (also searched with spaces and by word).
+- [x] `.env` is ignored by git and was never committed; the twin's Cloud mode keeps its URL and password only in the browser.
+- [x] Logos: ASU (course) and CSS (from the CSS dashboards repository) in `docs/twin/img`; tool logos on the slides from Simple Icons (CC0).
+- [x] All tests pass (32 Python, 5 JavaScript); `bins.json` and `twin_data.json` up to date.
+- [ ] Still to decide (Diego): `docs/index.html`, `data/README.md` and `tools/update_series.py` name the internal source
+  folder `REPOSICION_UE_CSS` and the file type `series_saldos`. Not a secret and no facility name; keep or generalise.
+
 If a secret is ever committed: change that password or token in the EMQX / InfluxDB console straight away. Removing it from the history is not enough.
 
 ## Code quality
