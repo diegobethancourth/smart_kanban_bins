@@ -521,7 +521,7 @@ const P = [
    "Each member rehearses their part and can answer questions about the components they present (rubric section 4).",
    "Rehearse twice with a timer, on the network you will use in class.",
    "Agree the signal for switching to the backup video if the live demo fails. Milestone M4 is reached."]],
-  ["T4.7","3D shelf twin (extension)","Browser 3D digital twin of the six bins, fed by the edge, by the cloud broker or by an in-browser replay","The twin shows the same units, reorders, faults and broker outage as the dashboard, in all three modes","DB","11-15","11-22","M3",[
+  ["T4.7","3D shelf twin (extension)","Browser 3D digital twin of the loop (ISA-95 L0-L4): shelf, gateway, cloud, dashboard and ERP requisitions, fed by the edge, by the cloud broker or by an in-browser replay","The twin shows the same units, reorders, faults and broker outage as the dashboard, in all three modes, and closes each requisition when the delivery arrives","DB","11-15","11-22","M3",[
    "Page in <code>docs/twin/</code> (three.js and mqtt.js vendored, so it works offline), served by Node-RED at <code>http://localhost:1880/twin/</code> and by GitHub Pages.",
    "<b>Edge (local)</b>: Function node <i>3D twin feed</i> sends every reading, every message sent to the broker and the broker/queue status to the websocket <code>/ws/twin</code>.",
    "<b>Cloud (MQTT)</b>: subscribes to <code>css/UE-A/#</code> over secure WebSocket (EMQX port 8084) with a subscribe-only user; credentials stay in the browser.",
