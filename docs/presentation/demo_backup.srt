@@ -1,0 +1,47 @@
+1
+00:00:00,500 --> 00:00:17,000
+1 · Data generation: the Python simulator replays the real SALMI stock of six medicines (simulator log in Docker)
+
+2
+00:00:17,200 --> 00:00:45,000
+2 · Transmission: MQTT Explorer receives the topics css/UE-A/bins/… on EMQX Cloud, MQTT 5 over TLS
+
+3
+00:00:45,200 --> 00:01:13,000
+Each bin publishes its level, reorder and EPCIS events; the gateway status "online" comes from the MQTT last will
+
+4
+00:01:13,200 --> 00:01:35,000
+3 · Edge logic: Node-RED polls the six load cells every second over Modbus TCP and converts grams to units
+
+5
+00:01:35,200 --> 00:01:57,000
+P-240 at the edge: a bin at or below its reorder point fires exactly one REORDER event (here bin06: 70 ≤ 70.6)
+
+6
+00:01:57,200 --> 00:02:10,000
+Everything runs in Docker: simulator, Node-RED edge, ingest service and Grafana
+
+7
+00:02:10,200 --> 00:02:30,000
+4 · Cloud: the ingest service stores every message in InfluxDB Cloud. 5 · Dashboard: Grafana shows gateway ONLINE, 0 flagged bins and the reorder events
+
+8
+00:02:30,200 --> 00:02:51,000
+Stock of each bin (maroon) against its P-240 reorder point (dashed gold); each refill is a step up
+
+9
+00:02:51,200 --> 00:03:10,000
+6 · 3D digital twin: the six bins on load cells, the gateway and the cloud; the gold ring marks the reorder point
+
+10
+00:03:10,200 --> 00:03:25,000
+ISA-95 levels 3 and 4: the dashboard screen and the ERP, where each reorder opens a requisition that closes when the delivery arrives
+
+11
+00:03:25,200 --> 00:03:50,000
+Click a bin to see its P-240 values: average demand, lead time, safety stock and reorder point
+
+12
+00:03:50,200 --> 00:04:11,500
+Network cut: the gateway keeps the messages on disk and sends them, in order, when the broker is back
