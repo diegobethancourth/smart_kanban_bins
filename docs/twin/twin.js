@@ -10,6 +10,11 @@
 //   Edge (local) the Node-RED websocket ws://<edge>:1880/ws/twin (flow node "3D twin feed").
 //   Cloud (MQTT) EMQX Cloud over secure WebSocket: retained levels, reorders, gateway status.
 //
+// The scene follows the ISA-95 levels: the shelf with its load cells (L0-L1), the Node-RED
+// gateway (L2), the cloud broker, the monitoring dashboard (L3) and the ERP requisition (L4).
+// A receipt in the stock closes the loop: the requisition is marked received and the delivery
+// flies back from the ERP screen to the bin.
+//
 // Libraries are vendored in ./vendor (three 0.186.1, mqtt 5.16.1) so the page works offline.
 
 import * as THREE from 'three';
@@ -245,7 +250,7 @@ const gwEl = document.createElement('div');
 gwEl.className = 'ptag';
 gwEl.innerHTML = '<b>gw01</b> · Node-RED edge<br><span class="q">Modbus TCP → P-240 → MQTT 5</span>';
 const gwTag = new CSS2DObject(gwEl);
-gwTag.position.set(0.04, 0.1, 0); gwTag.center.set(0.5, 1);
+gwTag.position.set(0.04, -0.09, 0.04); gwTag.center.set(0.5, 0);
 gw.add(gwTag);
 const GW_PORT = GW.clone().add(new THREE.Vector3(-0.07, -0.05, 0.04));
 const GW_UP = GW.clone().add(new THREE.Vector3(0.13, 0.19, -0.02));
@@ -282,11 +287,234 @@ const upLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(upCurve.g
 upLine.computeLineDistances();
 scene.add(upLine);
 
+// ---------------------------------------------------------------- ISA-95 levels 3 and 4: dashboard and ERP screens
+// Both screens are fed only by what reached the cloud (level and reorder messages after the
+// uplink), so during a network cut the dashboard stops and then backfills from the edge queue,
+// as Grafana does with the edge timestamps.
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.3), new THREE.MeshStandardMaterial({ color: 0xE9E5DF, roughness: 0.95 }));
+wall.position.set(0.15, 1.15, -0.78);
+wall.receiveShadow = true;
+scene.add(wall);
+
+function screen(x, y, w, h, px, kicker, title, view) {
+  const g = new THREE.Group();
+  g.position.set(x, y, -0.76);
+  scene.add(g);
+  box(w + 0.035, h + 0.035, 0.025, dark, 0, 0, 0, g);                        // bezel
+  const canvas = document.createElement('canvas');
+  canvas.width = px; canvas.height = Math.round(px * h / w);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+  plane.position.z = 0.0135;
+  plane.userData.view = view;
+  g.add(plane);
+  pickables.push(plane);
+  const el = document.createElement('div');
+  el.className = 'ptag lvl';
+  el.innerHTML = `<span class="k">${kicker}</span>${title}`;
+  el.addEventListener('click', () => goView(view));
+  const t = new CSS2DObject(el);
+  t.position.set(-w / 2, h / 2 + 0.03, 0.02); t.center.set(0, 1);
+  g.add(t);
+  return { g, canvas, ctx: canvas.getContext('2d'), tex, w, h, world: new THREE.Vector3(x, y, -0.74) };
+}
+const L3 = screen(-0.42, 1.56, 0.98, 0.54, 1400, 'L3', 'Dashboard · InfluxDB → Grafana', 'l3');
+const L4 = screen(0.66, 1.56, 0.82, 0.54, 1200, 'L4', 'ERP · P-240 requisitions', 'l4');
+
+const CLOUD_OUT = CLOUD.clone().add(new THREE.Vector3(-0.15, -0.05, -0.05));
+const toL3 = new THREE.CatmullRomCurve3([CLOUD_OUT, new THREE.Vector3(0.5, 1.98, -0.62), new THREE.Vector3(-0.42, 1.88, -0.7), L3.world.clone().add(new THREE.Vector3(0.1, 0.1, 0))]);
+const toL4 = new THREE.CatmullRomCurve3([CLOUD_OUT, new THREE.Vector3(1.2, 1.7, -0.68), L4.world.clone().add(new THREE.Vector3(0.25, 0.05, 0))]);
+for (const c of [toL3, toL4]) {
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(c.getPoints(60)), upMat);
+  l.computeLineDistances();
+  scene.add(l);
+}
+for (const b of bins.values()) {                 // delivery path: from the ERP back to the bin
+  const top = b.g.position.clone().add(new THREE.Vector3(0, PLATE + BH * 0.6, 0));
+  b.delivery = new THREE.CatmullRomCurve3([L4.world.clone().add(new THREE.Vector3(0, -0.25, 0.05)),
+    new THREE.Vector3((L4.world.x + top.x) / 2, 1.45, 0.25), top.clone().add(new THREE.Vector3(0, 0.35, 0.05)), top]);
+}
+
+const ent = { hist: new Map(), reqs: [], seq: 0, cloudMin: null, cycle: null, dirty: true };
+function resetEnterprise() {
+  ent.hist = new Map([...bins.keys()].map(k => [k, []]));
+  ent.reqs = []; ent.seq = 0; ent.cloudMin = null; ent.cycle = null; ent.dirty = true;
+}
+resetEnterprise();
+
+// a level message reached the cloud: history for L3, receipt check for L4
+function arriveLevel(p) {
+  const b = bins.get(p.bin_id);
+  if (!b || p.units == null) return;
+  if (p.cycle != null && ent.cycle != null && p.cycle !== ent.cycle) resetEnterprise();
+  if (p.cycle != null) ent.cycle = p.cycle;
+  const h = ent.hist.get(p.bin_id);
+  const t = p.sim_min ?? (h.length ? h[h.length - 1][0] : 0);
+  const prev = h.length ? h[h.length - 1] : null;
+  h.push([t, p.units, p.status ?? 0]);
+  if (h.length > 3000) h.shift();
+  ent.cloudMin = Math.max(ent.cloudMin ?? 0, t);
+  ent.dirty = true;
+  // a receipt: the stock jumps up by at least a quarter of the ROP (smaller rises are returns or adjustments)
+  if (prev && p.units - prev[1] >= Math.max(3 * b.cfg.deadband_units, 0.25 * b.cfg.ROP)) {
+    const r = ent.reqs.find(q => q.bin === b.cfg.bin && q.status === 'Requested');
+    const qty = p.units - prev[1];
+    if (r) {
+      Object.assign(r, { status: 'Received', recvMin: t, recvQty: qty, lead: (t - r.reqMin) / 1440 });
+      log(`<b>Receipt ${b.cfg.bin}</b> +${fmt(qty)} units: ${r.id} closed, actual lead time ${fmt(r.lead, 1)} days`, 'recv');
+    } else {
+      log(`<b>Receipt ${b.cfg.bin}</b> +${fmt(qty)} units`, 'recv');
+    }
+    packet(b.delivery, COLORS.ok, 0.03, 1.8, () => burst(b, `RECEIVED +${fmt(qty)}`, 'recv'));
+  }
+}
+
+// a reorder event reached the ERP: open a requisition
+function arriveReorder(p) {
+  const b = bins.get(p.bin_id);
+  if (!b) return;
+  if (ent.reqs.some(q => q.bin === b.cfg.bin && q.status === 'Requested' && q.cycle === p.cycle && Math.abs(q.reqMin - p.sim_min) < 1)) return;
+  ent.seq += 1;
+  ent.reqs.unshift({ id: 'REQ-' + String(ent.seq).padStart(4, '0'), bin: b.cfg.bin, item: b.cfg.item, name: shortName(b.cfg.name),
+    units: p.units, qty: Math.max(0, Math.round(b.cfg.max_stock - p.units)), reqMin: p.sim_min ?? ent.cloudMin ?? 0,
+    cycle: p.cycle, status: 'Requested' });
+  ent.dirty = true;
+}
+
+function fit(ctx, text, max) {                    // cut a text with an ellipsis to fit a column
+  if (ctx.measureText(text).width <= max) return text;
+  while (text.length > 1 && ctx.measureText(text + '…').width > max) text = text.slice(0, -1);
+  return text + '…';
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+
+function drawL3() {
+  const { ctx, canvas } = L3, W = canvas.width, H = canvas.height, s = W / 1400;
+  ctx.fillStyle = '#111217'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#e8e9ed'; ctx.font = `600 ${30 * s}px Segoe UI, Arial`; ctx.textBaseline = 'middle';
+  const title = `Smart Kanban · ${UE}`;
+  ctx.fillText(title, 28 * s, 34 * s);
+  const tx = 28 * s + ctx.measureText(title).width + 22 * s;
+  ctx.font = `${20 * s}px Segoe UI, Arial`; ctx.fillStyle = '#9aa0ab';
+  ctx.fillText(ent.cloudMin != null ? 'last data in the cloud: ' + simDate(ent.cloudMin) : 'waiting for data', tx, 35 * s);
+  const online = state.gateway !== 'offline' && state.lastMsg;
+  const pill = (x, text, bg, fg) => { ctx.font = `600 ${19 * s}px Segoe UI, Arial`; const w = ctx.measureText(text).width + 28 * s;
+    ctx.fillStyle = bg; rr(ctx, x - w, 16 * s, w, 36 * s, 18 * s); ctx.fill(); ctx.fillStyle = fg; ctx.fillText(text, x - w + 14 * s, 35 * s); return x - w - 10 * s; };
+  let x = pill(W - 24 * s, online ? 'GATEWAY ONLINE' : 'GATEWAY OFFLINE', online ? '#1f4d2c' : '#5a1f1f', online ? '#8be0a4' : '#ff9d9d');
+  const flagged = [...bins.values()].filter(b => b.status).length;
+  x = pill(x, `${flagged} flagged`, flagged ? '#5a1f1f' : '#24262d', flagged ? '#ff9d9d' : '#c4c7ce');
+  pill(x, `${ent.reqs.length} reorder${ent.reqs.length === 1 ? '' : 's'}`, '#4a3b0c', '#ffd65c');
+  // six panels, 30 simulated days each
+  const cols = 3, pw = (W - 28 * s * 2 - 16 * s * 2) / cols, ph = (H - 76 * s - 22 * s - 16 * s) / 2;
+  const span = 30 * 1440, tEnd = ent.cloudMin ?? 0, tStart = tEnd - span;
+  [...bins.values()].forEach((b, i) => {
+    const px = 28 * s + (i % cols) * (pw + 16 * s), py = 76 * s + Math.floor(i / cols) * (ph + 16 * s);
+    ctx.fillStyle = '#1b1d24'; rr(ctx, px, py, pw, ph, 10 * s); ctx.fill();
+    const h = ent.hist.get(b.cfg.bin), last = h[h.length - 1];
+    ctx.fillStyle = '#c9ccd3'; ctx.font = `600 ${20 * s}px Segoe UI, Arial`;
+    ctx.fillText(fit(ctx, `${b.cfg.bin} · ${shortName(b.cfg.name)}`, pw - 130 * s), px + 16 * s, py + 24 * s);
+    const low = last && last[1] <= b.cfg.ROP, flag = last && last[2];
+    ctx.font = `700 ${38 * s}px Segoe UI, Arial`; ctx.textAlign = 'right';
+    ctx.fillStyle = flag ? '#ff8a8a' : low ? '#ffd65c' : '#8be0a4';
+    ctx.fillText(last ? fmt(last[1]) : '—', px + pw - 16 * s, py + 30 * s);
+    ctx.textAlign = 'left';
+    // chart area
+    const cx = px + 16 * s, cy = py + 58 * s, cw = pw - 32 * s, ch = ph - 78 * s;
+    const ymax = b.capacity;
+    const X = t => cx + (t - tStart) / span * cw, Y = v => cy + ch - Math.min(1, v / ymax) * ch;
+    ctx.strokeStyle = '#2a2d36'; ctx.lineWidth = 1;
+    for (let k = 0; k <= 3; k++) { const yy = cy + ch * k / 3; ctx.beginPath(); ctx.moveTo(cx, yy); ctx.lineTo(cx + cw, yy); ctx.stroke(); }
+    ctx.setLineDash([10 * s, 7 * s]); ctx.strokeStyle = '#FFC627'; ctx.lineWidth = 2.5 * s;
+    ctx.beginPath(); ctx.moveTo(cx, Y(b.cfg.ROP)); ctx.lineTo(cx + cw, Y(b.cfg.ROP)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#FFC627'; ctx.font = `${15 * s}px Segoe UI, Arial`; ctx.fillText(`ROP ${fmt(b.cfg.ROP)}`, cx + 4 * s, Y(b.cfg.ROP) - 11 * s);
+    // stock as a step line (each value holds until the next message), like the Grafana panel
+    const pts = h.filter(q => q[0] >= tStart - 1440 * 6);
+    if (pts.length) {
+      ctx.save(); ctx.beginPath(); ctx.rect(cx, cy - 4, cw, ch + 8); ctx.clip();
+      ctx.strokeStyle = '#E87597'; ctx.lineWidth = 3 * s; ctx.beginPath();
+      pts.forEach((q, k) => { const xx = X(q[0]), yy = Y(q[1]); if (k === 0) ctx.moveTo(xx, yy); else { ctx.lineTo(xx, Y(pts[k - 1][1])); ctx.lineTo(xx, yy); } });
+      ctx.stroke();
+      ent.reqs.filter(r => r.bin === b.cfg.bin && r.reqMin >= tStart).forEach(r => {   // reorder markers
+        ctx.fillStyle = '#FFC627'; ctx.beginPath(); ctx.arc(X(r.reqMin), Y(r.units), 7 * s, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
+    }
+    ctx.fillStyle = '#6f7582'; ctx.font = `${14 * s}px Segoe UI, Arial`;
+    ctx.fillText(ent.cloudMin != null ? simDate(tStart, true) : '', cx, cy + ch + 12 * s);
+    ctx.textAlign = 'right'; ctx.fillText(ent.cloudMin != null ? simDate(tEnd, true) : '', cx + cw, cy + ch + 12 * s); ctx.textAlign = 'left';
+  });
+  L3.tex.needsUpdate = true;
+}
+
+function drawL4() {
+  const { ctx, canvas } = L4, W = canvas.width, H = canvas.height, s = W / 1200;
+  const F = (px, w = '') => `${w} ${px * s}px Segoe UI, Arial`;
+  ctx.fillStyle = '#F7F6F3'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#8C1D40'; ctx.fillRect(0, 0, W, 78 * s);
+  ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.font = F(34, 600);
+  ctx.fillText('ERP · Purchase requisitions', 26 * s, 40 * s);
+  ctx.font = F(20); ctx.textAlign = 'right';
+  ctx.fillText(`P-240 · from reorder + EPCIS events · ${UE}`, W - 24 * s, 41 * s); ctx.textAlign = 'left';
+  const cols = [['Req.', 26], ['Item', 170], ['Units', 545], ['Qty', 665], ['Requested', 780], ['Status', 935]];
+  ctx.fillStyle = '#5b6270'; ctx.font = F(20, 600);
+  cols.forEach(([t, x]) => ctx.fillText(t, x * s, 110 * s));
+  ctx.fillStyle = '#E4E1DC'; ctx.fillRect(20 * s, 128 * s, W - 40 * s, 2 * s);
+  const rh = 66 * s, rows = ent.reqs.slice(0, Math.floor((H - 210 * s) / rh));
+  rows.forEach((r, k) => {
+    const y = 164 * s + k * rh;
+    ctx.fillStyle = k % 2 ? '#F7F6F3' : '#FFFFFF'; ctx.fillRect(20 * s, y - rh / 2, W - 40 * s, rh);
+    ctx.fillStyle = '#1f2328'; ctx.font = F(22, 600); ctx.fillText(r.id.replace('REQ-', '#'), 26 * s, y);
+    ctx.font = F(23, 600); ctx.fillText(fit(ctx, `${r.bin} · ${r.name}`, 360 * s), 170 * s, y - 11 * s);
+    ctx.fillStyle = '#6b7280'; ctx.font = F(17); ctx.fillText(`SALMI ${r.item}`, 170 * s, y + 15 * s);
+    ctx.fillStyle = '#1f2328'; ctx.font = F(23);
+    ctx.fillText(fmt(r.units), 545 * s, y); ctx.fillText(fmt(r.qty), 665 * s, y); ctx.fillText(simDate(r.reqMin, true), 780 * s, y);
+    const rec = r.status === 'Received';
+    const text = rec ? `Received · ${fmt(r.lead, 1)} d` : 'Requested';
+    ctx.font = F(20, 600);
+    const w = ctx.measureText(text).width + 24 * s;
+    ctx.fillStyle = rec ? '#D3EEDB' : '#FFEBB0'; rr(ctx, 935 * s - 10 * s, y - 19 * s, w, 38 * s, 19 * s); ctx.fill();
+    ctx.fillStyle = rec ? '#1E6B3A' : '#7A5600'; ctx.fillText(text, 935 * s + 2 * s, y);
+  });
+  if (!rows.length) { ctx.fillStyle = '#6b7280'; ctx.font = F(24); ctx.fillText('No requisitions yet: one opens when a bin crosses its ROP.', 26 * s, 180 * s); }
+  // footer: actual lead time from the receipts against the L of P-240
+  const done = ent.reqs.filter(r => r.status === 'Received');
+  const open = ent.reqs.length - done.length;
+  const mean = done.length ? done.reduce((a, r) => a + r.lead, 0) / done.length : null;
+  ctx.fillStyle = '#EFEDE9'; ctx.fillRect(0, H - 76 * s, W, 76 * s);
+  ctx.fillStyle = '#1f2328'; ctx.font = F(23, 600);
+  ctx.fillText(`${open} open · ${done.length} received`, 26 * s, H - 38 * s);
+  ctx.font = F(23); ctx.textAlign = 'right';
+  ctx.fillText(mean != null ? `actual lead time ${fmt(mean, 1)} d · P-240 assumes L = ${DATA.p240.L_days} d`
+    : `P-240 assumes a lead time L = ${DATA.p240.L_days} d`, W - 26 * s, H - 38 * s);
+  ctx.textAlign = 'left';
+  L4.tex.needsUpdate = true;
+}
+
+// ---------------------------------------------------------------- camera views
+const VIEWS = {
+  overview: { pos: [0.62, 1.42, 3.35], at: [0.32, 0.96, -0.3] },
+  shelf:    { pos: [0.95, 1.25, 2.55], at: [0.25, 0.66, 0] },
+  l3:       { pos: [-0.42, 1.56, 0.42], at: [-0.42, 1.56, -0.76] },
+  l4:       { pos: [0.66, 1.56, 0.25], at: [0.66, 1.56, -0.76] },
+};
+const SHELF_C = new THREE.Vector3(0, 0.6, 0);
+const tween = { on: false, pos: new THREE.Vector3(), at: new THREE.Vector3() };
+function goView(name, instant = false) {
+  const v = VIEWS[name] || VIEWS.overview;
+  tween.pos.set(...v.pos); tween.at.set(...v.at); tween.on = true;
+  if (instant) { camera.position.copy(tween.pos); controls.target.copy(tween.at); tween.on = false; }
+  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.view === name));
+}
+controls.addEventListener('start', () => { tween.on = false; document.querySelectorAll('#views button').forEach(b => b.classList.remove('on')); });
+document.querySelectorAll('#views button').forEach(b => b.addEventListener('click', () => goView(b.dataset.view)));
+
 // ---------------------------------------------------------------- packets
 const packets = [];
 const PACKET_GEO = new THREE.SphereGeometry(1, 16, 12);
 function packet(curve, color, r, dur, onDone) {
-  if (packets.length > 400) return;                          // keep the scene light during a backlog burst
+  if (packets.length > 400) { if (onDone) setTimeout(onDone, 0); return; }   // keep the scene light during a backlog burst
   const m = new THREE.Mesh(PACKET_GEO, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.9 }));
   m.scale.setScalar(r);
   scene.add(m);
@@ -319,7 +547,7 @@ for (const b of bins.values()) {
   row.innerHTML = `<div class="nm">${b.cfg.bin} · ${shortName(b.cfg.name)}</div><div class="u">—</div>
     <div class="sub">ROP ${fmt(b.cfg.ROP)} · SS ${fmt(b.cfg.SS)}${b.cfg.vital ? ' · vital' : ''}</div><div class="st">—</div>
     <div class="bar"><i></i></div>
-    <div class="detail"><table>
+    <div class="detail"><h4>${b.cfg.bin} · ${b.cfg.name}</h4><table>
       <tr><td>Item (SALMI code)</td><td>${b.cfg.item}</td></tr>
       <tr><td>Average demand d̄</td><td>${fmt(b.cfg.d_day, 1)} units/day</td></tr>
       <tr><td>Lead time L</td><td>${DATA.p240.L_days} days</td></tr>
@@ -328,7 +556,7 @@ for (const b of bins.values()) {
       <tr><td>ROP d̄·L + SS</td><td>${fmt(b.cfg.ROP)} units</td></tr>
       <tr><td>Unit weight · tare</td><td>${b.cfg.unit_g} g · ${b.cfg.tare_g} g</td></tr>
     </table></div>`;
-  row.addEventListener('click', () => select(state.selected === b.cfg.bin ? null : b.cfg.bin));
+  row.addEventListener('click', e => { if (!e.target.closest('.detail')) select(state.selected === b.cfg.bin ? null : b.cfg.bin); });
   ui.bins.appendChild(row);
   b.row = row;
 }
@@ -340,7 +568,6 @@ function select(binId) {
     b.row.classList.toggle('sel', on);
     b.el.classList.toggle('sel', on);
   }
-  if (binId) bins.get(binId).row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
 let downAt = null;
@@ -351,6 +578,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects(pickables)[0];
+  if (hit && hit.object.userData.view) { goView(hit.object.userData.view); return; }
   select(hit ? hit.object.userData.bin : null);
 });
 
@@ -438,10 +666,12 @@ function onSent(topic, payload, fromCloud = false) {
   if (!p) return;
   if (kind === 'level') {
     if (fromCloud) onReading(p, false);                     // from the cloud the level is all we get
-    packet(upCurve, COLORS.level, 0.012, 1.3);
+    arriveLevel(p);                                         // the data path is immediate; the packets only show it
+    packet(upCurve, COLORS.level, 0.012, 1.3, () => packet(toL3, COLORS.level, 0.011, 1.0));
   } else if (kind === 'reorder') {
     const b = bins.get(p.bin_id);
-    packet(upCurve, COLORS.reorder, 0.024, 1.8);
+    arriveReorder(p);
+    packet(upCurve, COLORS.reorder, 0.024, 1.8, () => packet(toL4, COLORS.reorder, 0.022, 1.0));
     if (b) {
       b.flashUntil = performance.now() + 4000;
       if (p.sim_min != null) state.simMin = Math.max(state.simMin ?? 0, p.sim_min);
@@ -473,9 +703,9 @@ function handle(m) {
   else if (m.type === 'node_status') onNodeStatus(m);
 }
 
-function burst(b, text) {
+function burst(b, text, cls = '') {
   const el = document.createElement('div');
-  el.className = 'burst';
+  el.className = 'burst ' + cls;
   el.textContent = text;
   const o = new CSS2DObject(el);
   o.position.set(0, PLATE + BH + 0.18, BD / 2 - 0.05);
@@ -525,11 +755,19 @@ function frame(now) {
     b.ringMat.emissiveIntensity = 0.55 + fl * 1.2;
   }
   upMat.dashOffset -= dt * 0.08;
+  if (tween.on) {
+    const k = Math.min(1, dt * 3.5);
+    camera.position.lerp(tween.pos, k); controls.target.lerp(tween.at, k);
+    if (camera.position.distanceTo(tween.pos) < 0.002) tween.on = false;
+  }
+  if (ent.dirty && now - (ent.drawnAt || 0) > 250) { ent.dirty = false; ent.drawnAt = now; drawL3(); drawL4(); }
   stepPackets(now);
   if (state.simMin != null) {
     ui.date.textContent = simDate(state.simMin);
     ui.day.textContent = `day ${Math.floor(state.simMin / 1440) + 1} of ${LAST_DAY + 1}`;
   }
+  const far = camera.position.distanceTo(SHELF_C) > 2.4;      // compact labels when zoomed out
+  if (far !== ui.far) { ui.far = far; document.getElementById('labels').classList.toggle('far', far); }
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
@@ -701,6 +939,8 @@ function askCloud() {
 function clearScene() {
   for (const b of bins.values()) { b.target = null; b.shown = null; b.status = null; b.inst.count = 0; if (b.caps) b.caps.count = 0; }
   Object.assign(state, { simMin: null, cycle: 0, sent: 0, broker: null, queue: 0, gateway: null, lastMsg: 0 });
+  packets.splice(0).forEach(q => scene.remove(q.m));
+  resetEnterprise();
   ui.date.textContent = '—'; ui.day.textContent = ''; ui.log.innerHTML = '';
   for (const b of bins.values()) {
     b.el.className = 'tag'; b.el.querySelector('.u').textContent = '—'; b.el.querySelector('.s').textContent = 'waiting for data';
@@ -755,6 +995,14 @@ function safeJson(t) { try { return JSON.parse(t); } catch (e) { return null; } 
 function hostOf(u) { try { return new URL(u).host; } catch (e) { return u; } }
 
 resize();
+goView(params.get('view') || 'overview', true);
+document.getElementById('evHead').addEventListener('click', () => {
+  const ev = document.getElementById('events');
+  ev.classList.toggle('closed');
+  document.getElementById('evToggle').textContent = ev.classList.contains('closed') ? 'show' : 'hide';
+});
+if (window.innerWidth < 700) document.getElementById('events').classList.add('closed');
+setInterval(() => { ent.dirty = true; }, 1000);              // gateway pill and flagged count on L3
 const startSrc = params.get('source') || (location.port === '1880' ? 'local' : 'demo');
 use(['demo', 'local', 'cloud'].includes(startSrc) ? startSrc : 'demo', false);
 requestAnimationFrame(frame);

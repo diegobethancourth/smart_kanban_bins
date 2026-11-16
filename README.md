@@ -89,10 +89,15 @@ docker compose --profile local --env-file .env.local up --build
 
 ## 3D shelf twin
 
-A browser digital twin of the shelf: six bins on load-cell plates, filled with the item each one
-holds, a gold ring at the P-240 reorder point, the Node-RED gateway and the cloud. A bin turns gold
-at or below its ROP, flashes on a reorder and turns red when its sensor is flagged; small packets
-show the Modbus polls and every MQTT message leaving the gateway. Click a bin to see its P-240 values.
+A browser digital twin of the whole loop, laid out by ISA-95 level: the shelf with six bins on
+load-cell plates (L0-L1), the Node-RED gateway (L2), the cloud broker, a monitoring dashboard (L3)
+and an ERP requisition screen (L4). A bin turns gold at or below its P-240 reorder point (gold ring),
+flashes on a reorder and turns red when its sensor is flagged; small packets show the Modbus polls
+and every MQTT message leaving the gateway. The L3 screen draws only what reached the cloud, so it
+stops during a network cut and backfills from the edge queue. Each reorder opens a requisition on
+the L4 screen; when the stock shows the delivery, the requisition is closed with its actual lead
+time (compared with the L = 20 days that P-240 assumes) and the delivery flies back to the bin.
+Use the view buttons (Overview, Shelf, L3, L4) or click a screen; click a bin for its P-240 values.
 
 | Source | What feeds it |
 |---|---|
