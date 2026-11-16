@@ -412,7 +412,7 @@ const P = [
    "For each pair of consecutive report dates, the consumption is the drop in stock. An increase is a receipt and appears as a step up on the report date.",
    "Spread the drop over the days in between: draw daily Poisson values with mean = drop / days, then rescale so they add up exactly to the drop.",
    "Split each day into a few dispense events at random times.",
-   "Time compression from an environment variable, for example <code>SIM_SECONDS_PER_DAY=10</code> (131 days ≈ 22 minutes).",
+   "Time compression from an environment variable, for example <code>SIM_SECONDS_PER_DAY=10</code> (159 days ≈ 27 minutes).",
    "Convert units to grams: <code>tare + units × unit_g</code>, and write the registers.",
    "Add a test that checks the simulated stock against the SALMI value on every report date."]],
   ["T2.3","Six bins","Extend the simulator to six bins (one unit ID or register block per bin)","Edge reads six independent weights","DB","11-09","11-11","T2.2",[

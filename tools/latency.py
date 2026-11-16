@@ -123,7 +123,8 @@ def main():
           "How much earlier does a sensed bin detect a P-240 reorder-point (ROP) crossing than "
           "the SALMI stock report would?", "",
           "## Method", "",
-          "1. A full replay of the 92 UE-A report dates (8 Jun - 17 Oct 2026) runs through the whole "
+          f"1. A full replay of the {cfg['report_dates']} UE-A report dates ({date.fromisoformat(cfg['first_date']):%d %b} - "
+          f"{date.fromisoformat(cfg['last_date']):%d %b %Y}) runs through the whole "
           "chain: simulator -> Modbus -> Node-RED edge (units, deadband, P-240 with hysteresis) -> MQTT -> ingest.",
           "2. For each reorder event published by the edge, the **sensed time** is the simulated time "
           "of the reading that crossed the ROP (`sim_min`, read from the simulator registers 40004-40005).",

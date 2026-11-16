@@ -337,6 +337,32 @@ for (const b of bins.values()) {                 // delivery path: from the ERP 
     new THREE.Vector3((L4.world.x + top.x) / 2, 1.45, 0.25), top.clone().add(new THREE.Vector3(0, 0.35, 0.05)), top]);
 }
 
+const CSS_LOGO = new Image();
+CSS_LOGO.onload = () => { ent.dirty = true; drawSign(); };
+CSS_LOGO.src = 'img/css_logo.png';
+
+// sign on the wall: whose shelf this is
+const sign = (() => {
+  const c = document.createElement('canvas'); c.width = 1400; c.height = 220;
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.236), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false }));
+  m.position.set(0.1, 2.15, -0.775);
+  scene.add(m);
+  return { c, tex };
+})();
+function drawSign() {
+  const ctx = sign.c.getContext('2d'), W = sign.c.width, H = sign.c.height;
+  ctx.clearRect(0, 0, W, H);
+  if (CSS_LOGO.complete && CSS_LOGO.naturalWidth) ctx.drawImage(CSS_LOGO, 10, 10, 200, 200);
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1A5BA8'; ctx.font = '700 64px Segoe UI, Arial';
+  ctx.fillText('Caja de Seguro Social', 240, 78);
+  ctx.fillStyle = '#4b5563'; ctx.font = '40px Segoe UI, Arial';
+  ctx.fillText(`DINALOG · facility ${UE} · smart Kanban pharmacy shelf`, 242, 150);
+  sign.tex.needsUpdate = true;
+}
+drawSign();
+
 const ent = { hist: new Map(), reqs: [], seq: 0, cloudMin: null, cycle: null, dirty: true };
 function resetEnterprise() {
   ent.hist = new Map([...bins.keys()].map(k => [k, []]));
@@ -394,9 +420,13 @@ function drawL3() {
   const { ctx, canvas } = L3, W = canvas.width, H = canvas.height, s = W / 1400;
   ctx.fillStyle = '#111217'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#e8e9ed'; ctx.font = `600 ${30 * s}px Segoe UI, Arial`; ctx.textBaseline = 'middle';
-  const title = `Smart Kanban · ${UE}`;
-  ctx.fillText(title, 28 * s, 34 * s);
-  const tx = 28 * s + ctx.measureText(title).width + 22 * s;
+  let lx = 28 * s;
+  if (CSS_LOGO.complete && CSS_LOGO.naturalWidth) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(lx + 25 * s, 34 * s, 25 * s, 0, Math.PI * 2); ctx.fill();
+    ctx.drawImage(CSS_LOGO, lx + 1 * s, 10 * s, 48 * s, 48 * s); lx += 62 * s; }
+  ctx.fillStyle = '#e8e9ed';
+  const title = `CSS · Smart Kanban · ${UE}`;
+  ctx.fillText(title, lx, 34 * s);
+  const tx = lx + ctx.measureText(title).width + 22 * s;
   ctx.font = `${20 * s}px Segoe UI, Arial`; ctx.fillStyle = '#9aa0ab';
   ctx.fillText(ent.cloudMin != null ? 'last data in the cloud: ' + simDate(ent.cloudMin) : 'waiting for data', tx, 35 * s);
   const online = state.gateway !== 'offline' && state.lastMsg;
@@ -563,6 +593,7 @@ for (const b of bins.values()) {
 
 function select(binId) {
   state.selected = binId;
+  document.body.classList.toggle('binsel', !!binId);       // the P-240 pop-up takes the place of the events panel
   for (const b of bins.values()) {
     const on = b.cfg.bin === binId;
     b.row.classList.toggle('sel', on);
@@ -602,7 +633,7 @@ function refreshChips() {
   else if (state.broker === true) setChip(ui.broker, 'ok', 'broker connected');
   else if (state.broker === false) setChip(ui.broker, 'flag', `broker down: ${state.queue} queued`);
   else setChip(ui.broker, '', 'broker —');
-  setChip(ui.msgs, 'info', `${state.sent.toLocaleString('en-US')} messages sent`);
+  setChip(ui.msgs, 'info', `${state.sent.toLocaleString('en-US')} msgs sent`);
   const down = state.broker === false || state.gateway === 'offline';
   ui.banner.style.display = down ? 'block' : 'none';
   ui.banner.textContent = state.gateway === 'offline' ? 'Gateway offline: last will received'

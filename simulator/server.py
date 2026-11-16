@@ -12,7 +12,7 @@ The stock follows the SALMI series (replay engine in replay.py), with time compr
 one simulated day lasts SIM_SECONDS_PER_DAY real seconds.
 
 Environment variables (all optional):
-  SIM_SECONDS_PER_DAY  real seconds per simulated day (default 10: 131 days = about 22 min)
+  SIM_SECONDS_PER_DAY  real seconds per simulated day (default 10: 159 days = about 27 min)
   SIM_START_DAY        simulated day to start from (default 0)
   SIM_LOOP             1 = start the replay again after the last report date (default 1)
   SIM_SEED             random seed for the replay paths and the noise (default 42)
