@@ -12,7 +12,7 @@
         "z": "edge_tab",
         "name": "Smart Kanban edge: simulator (Modbus TCP) -> units / P-240 -> MQTT 5 over TLS",
         "info": "See docs/register_map.md for the registers and docs/schema.md for the MQTT payloads.",
-        "x": 370,
+        "x": 400,
         "y": 40,
         "wires": []
     },
@@ -27,7 +27,7 @@
         "once": true,
         "onceDelay": "2",
         "topic": "",
-        "x": 120,
+        "x": 130,
         "y": 120,
         "wires": [
             [
@@ -47,7 +47,7 @@
         "initialize": "// T1.4 - one Modbus TCP client for all six bins (modbus-serial, loaded in settings.js)\nconst ModbusRTU = global.get('ModbusRTU');\nconst client = new ModbusRTU();\nclient.setTimeout(500);\ncontext.set('client', client);\ncontext.set('busy', false);\n",
         "finalize": "const client = context.get('client');\nif (client && client.isOpen) client.close(() => {});\n",
         "libs": [],
-        "x": 330,
+        "x": 340,
         "y": 120,
         "wires": [
             [
@@ -69,8 +69,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 580,
-        "y": 60,
+        "x": 360,
+        "y": 180,
         "wires": []
     },
     {
@@ -85,7 +85,7 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 600,
+        "x": 640,
         "y": 120,
         "wires": [
             [
@@ -111,7 +111,7 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 870,
+        "x": 920,
         "y": 60,
         "wires": []
     },
@@ -127,8 +127,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 620,
-        "y": 220,
+        "x": 640,
+        "y": 240,
         "wires": [
             [
                 "fn_sf",
@@ -152,8 +152,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 880,
-        "y": 260,
+        "x": 920,
+        "y": 300,
         "wires": []
     },
     {
@@ -168,8 +168,8 @@
         "initialize": "// After a deploy or restart: not connected until the Status node says so, no flush running.\n// (The queue itself is kept in the 'file' store and is sent once the broker is connected.)\ncontext.set('up', false);\ncontext.set('flushing', false);\ncontext.set('recent', []);\n",
         "finalize": "",
         "libs": [],
-        "x": 900,
-        "y": 160,
+        "x": 920,
+        "y": 180,
         "wires": [
             [
                 "mqtt_out",
@@ -185,8 +185,8 @@
         "scope": [
             "mqtt_out"
         ],
-        "x": 670,
-        "y": 300,
+        "x": 640,
+        "y": 330,
         "wires": [
             [
                 "fn_sf"
@@ -207,8 +207,8 @@
         "correl": "",
         "expiry": "",
         "broker": "mqtt_broker",
-        "x": 1160,
-        "y": 160,
+        "x": 1190,
+        "y": 180,
         "wires": []
     },
     {
@@ -265,7 +265,7 @@
         "name": "T4.7 3D shelf twin: http://localhost:1880/twin/ (local source = this websocket)",
         "info": "Read-only tap for docs/twin. Sends every reading, every message sent to the broker and the broker/queue status to ws://<edge>:1880/ws/twin.",
         "x": 420,
-        "y": 380,
+        "y": 400,
         "wires": []
     },
     {
@@ -277,8 +277,8 @@
             "mqtt_out",
             "fn_sf"
         ],
-        "x": 680,
-        "y": 440,
+        "x": 640,
+        "y": 460,
         "wires": [
             [
                 "fn_twin"
@@ -298,7 +298,7 @@
         "finalize": "",
         "libs": [],
         "x": 920,
-        "y": 440,
+        "y": 460,
         "wires": [
             [
                 "ws_twin"
@@ -312,8 +312,8 @@
         "name": "/ws/twin",
         "server": "ws_twin_listener",
         "client": "",
-        "x": 1120,
-        "y": 440,
+        "x": 1130,
+        "y": 460,
         "wires": []
     },
     {

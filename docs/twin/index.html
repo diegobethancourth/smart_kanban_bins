@@ -20,20 +20,22 @@
   #app { display: flex; flex-direction: column; height: 100%; }
 
   /* ---------- top bar ---------- */
-  #top { display: flex; align-items: center; gap: 18px; padding: 8px 16px; background: var(--maroon); color: #fff; flex-wrap: wrap; }
-  .brand { display: flex; align-items: baseline; gap: 10px; }
-  .brand .kicker { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
-  .brand h1 { margin: 0; font-size: 18px; font-weight: 650; white-space: nowrap; }
-  .brand h1 b { color: var(--gold); font-weight: 650; }
-  .seg { display: flex; background: rgba(255,255,255,.14); border-radius: 9px; padding: 3px; gap: 3px; }
+  #top { display: flex; align-items: center; gap: 16px; padding: 8px 16px; background: #fff; color: var(--ink);
+    border-bottom: 4px solid var(--gold); flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand img { height: 38px; display: block; }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 700; color: var(--maroon); white-space: nowrap; line-height: 1.15; }
+  .brand .kicker { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .seg { display: flex; background: var(--idle); border-radius: 9px; padding: 3px; gap: 3px; }
   .seg button { border: 0; background: transparent; padding: 6px 11px; border-radius: 7px; font: inherit; font-size: 13px;
-    color: rgba(255,255,255,.85); cursor: pointer; white-space: nowrap; }
-  .seg button.on { background: #fff; color: var(--maroon); font-weight: 650; }
+    color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .seg button.on { background: var(--maroon); color: #fff; font-weight: 650; }
   .clock { line-height: 1.15; }
   .clock .date { font-size: 16px; font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .clock .day { font-size: 11.5px; opacity: .85; }
+  .clock .day { font-size: 11.5px; color: var(--muted); }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip { padding: 4px 9px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.88); color: var(--muted); white-space: nowrap; }
+  .chip { padding: 4px 9px; border-radius: 999px; font-size: 12px; background: var(--idle); color: var(--muted); white-space: nowrap; }
+  body.binsel #events { visibility: hidden; }
   .chip.ok { background: var(--ok); color: var(--ok-ink); }
   .chip.low { background: var(--low); color: var(--low-ink); }
   .chip.flag { background: var(--flag); color: var(--flag-ink); }
@@ -60,7 +62,8 @@
   .btn.on { background: var(--maroon); color: #fff; }
   .btn.fault.on { background: var(--flag); color: var(--flag-ink); font-weight: 600; }
   .gap { width: 10px; }
-  #srcnote { margin-left: auto; font-size: 12px; color: var(--muted); text-align: right; }
+  #srcnote { margin-left: auto; font-size: 12px; color: var(--muted); text-align: right; flex: 1 1 0; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #srcnote code { font-size: 11.5px; }
 
   /* ---------- 3D stage ---------- */
@@ -135,6 +138,9 @@
     border-radius: 8px; font: inherit; margin-top: 3px; }
   dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
+  @media (max-width: 1360px) {
+    #c-msgs { display: none; }
+  }
   @media (max-width: 1100px) {
     #bins { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .bin:nth-child(n+4) .detail { left: 0; right: auto; }
@@ -149,7 +155,7 @@
     #bins { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px 10px; }
     .bin:nth-child(n) .detail { left: 0; right: auto; }
     .bin:nth-child(2n) .detail { left: auto; right: 0; }
-    #srcnote { margin-left: 0; text-align: left; }
+    #srcnote { margin-left: 0; text-align: left; white-space: normal; flex-basis: 100%; }
   }
 </style>
 <script type="importmap">
@@ -160,8 +166,11 @@
 <div id="app">
   <header id="top">
     <div class="brand">
-      <div class="kicker">MFG 598 IIoT · Smart Kanban Bins · UE-A</div>
-      <h1>Shelf digital <b>twin</b></h1>
+      <img src="img/asu_logo.png" alt="Arizona State University">
+      <div>
+        <h1>Smart Kanban Bins · Digital Twin</h1>
+        <div class="kicker">MFG 598 IIoT · Group 2 · CSS facility UE-A</div>
+      </div>
     </div>
     <div class="seg" id="src">
       <button data-src="demo">Replay</button>

@@ -73,7 +73,7 @@ Then open:
 | Raw MQTT messages | MQTT Explorer → your EMQX address, port 8883, TLS on, subscribe `css/#` |
 | Modbus registers | `modpoll -m tcp -p 5020 -a 1 -r 1 -c 6 localhost` |
 
-The replay of 131 days takes about 22 minutes (`SIM_SECONDS_PER_DAY=10`). Set `SIM_START_DAY` in
+The replay of 159 days takes about 27 minutes (`SIM_SECONDS_PER_DAY=10`). Set `SIM_START_DAY` in
 `.env` to start later in the series, and `SIM_FAULTS` to switch on a fault
 (for example `bin03.stuck_from_day=30`).
 
@@ -121,8 +121,9 @@ node --test "edge/test/*.test.js"                    # P-240 against the CSS das
 
 ## Results
 
-**Detection latency (T3.6).** In a full replay through the whole chain, the bins saw 11 reorder-point
-crossings on average **0.75 days** (median 0.50, max 2.37) before the SALMI report that showed them.
+**Detection latency (T3.6).** In a full replay of the 109 report dates (8 Jun - 13 Nov 2026) through the
+whole chain, the bins saw 14 reorder-point crossings on average **0.72 days** (median 0.49, max 2.40) before
+the SALMI report that showed them.
 The gain is small because UE-A reported almost daily (median gap 1 day); it grows with the gap
 between reports. The result is model-based: the stock path between report dates is simulated.
 Details and limits: [docs/latency.md](docs/latency.md).
