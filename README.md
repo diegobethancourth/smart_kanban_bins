@@ -148,7 +148,7 @@ same messages seen in MQTT Explorer on EMQX Cloud (TLS, port 8883).
 ## Final presentation (2 December 2026)
 
 - Slide deck: [HTML](https://diegobethancourth.github.io/smart_kanban_bins/presentation/SmartKanban_Final_Deck.html) (opens in the browser; N = speaker notes, F = full screen) · [PDF](docs/presentation/SmartKanban_Final_Deck.pdf)
-- Backup demo video, 4 min with subtitles: [demo_backup.mp4](docs/presentation/demo_backup.mp4)
+- Backup demo video, 2:46 at 2× speed, with subtitles: [demo_backup.mp4](docs/presentation/demo_backup.mp4)
 - Speaker script: [SmartKanban_Speaker_Script.pdf](docs/presentation/SmartKanban_Speaker_Script.pdf)
 
 ## Documentation
