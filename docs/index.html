@@ -491,18 +491,18 @@ const P = [
    "Merge or close every open pull request.",
    "Tag the release: <code>git tag v1.0</code> then <code>git push origin v1.0</code>.",
    "From now on, only bug-fix pull requests, each reviewed."]],
-  ["T4.2","README (GitHub rubric)","README written to the GitHub-page rubric: summary of up to 200 words, system overview with the architecture image, step-by-step run instructions, expected output","A member who did not write it reproduces the demo from a clean clone using only the README","DB","11-22","11-30","T4.1",[
+  ["T4.2","README (GitHub rubric)","README written to the GitHub-page rubric: summary of up to 200 words, system overview with the architecture image, step-by-step run instructions, expected output","A clean clone runs from the README alone: config checks and all tests pass, and the stack starts with docker compose up","DB","11-22","11-30","T4.1",[
    "<b>Rubric 2a</b> Project summary (objective and problem solved), 200 words or fewer.",
    "<b>Rubric 2b</b> System overview: tools, methods and the architecture image (the same five-layer diagram as the slides).",
    "<b>Rubric 2c</b> How to run, step by step, written as a tutorial (clone, "+ENV+", <code>docker compose up</code>, open the dashboard), including the local fallback without cloud accounts.",
    "<b>Rubric 2d</b> Expected output: dashboard and MQTT screenshots, the latency result with its limits.",
-   "Ask Febylina to follow the README on a clean clone and fix every gap she hits."]],
-  ["T4.3","Privacy and quality pass","Privacy and quality pass: comments in all modules, no credentials or facility names in files or git history","Checklist signed off by all three members","DB","11-22","11-30","T4.1",[
+   "Test it on a clean clone: run the checks and tests from the README, then start the stack with <code>docker compose up</code> and open the dashboard and the twin."]],
+  ["T4.3","Privacy and quality pass","Privacy and quality pass: comments in all modules, no credentials or facility names in files or git history","Checklist completed: files and full history clean, all tests pass","DB","11-22","11-30","T4.1",[
    "Search the files: <code>git grep -n -i -E \"password|token|secret|emqxsl|influxdata\"</code>, plus the real facility names.",
    "Search the history as well: <code>git log -p | grep -i -E \"password|token\"</code>.",
    "If a secret was ever committed, change that password or token in the service console straight away. Removing it from the history is not enough.",
    "Check every module has a header comment and comments on non-obvious steps.",
-   "All three members tick the checklist in <code>docs/checklist.md</code>."]],
+   "Tick every item in <code>docs/checklist.md</code> and record the date of the pass."]],
   ["T4.4","Backup video","Pre-record the 4-minute demo as a backup (rubric section 4)","Video saved in the team folder and plays on the presentation computer","DB","11-24","11-28","T4.1",[
    "Run the frozen build (tag v1.0) with a fresh replay; the InfluxDB free plan keeps only 30 days of data.",
    "Show, in order: data generation (simulator), message transmission (MQTT Explorer), edge logic (Node-RED, a reorder), cloud reception and storage (InfluxDB), dashboard (Grafana).",

@@ -205,6 +205,16 @@ DATA.bins.forEach((cfg, i) => {
   ring.children.forEach(m => { m.castShadow = false; });
   g.add(ring);
 
+  // smart-bin display on the front of the bin (like the e-paper label of an industrial smart bin):
+  // the load cell's Modbus unit ID, the gross weight it reports and the units the edge computes
+  const lcdC = document.createElement('canvas'); lcdC.width = 640; lcdC.height = 230;
+  const lcdT = new THREE.CanvasTexture(lcdC); lcdT.colorSpace = THREE.SRGBColorSpace; lcdT.anisotropy = 8;
+  const LW = 0.30, LH = 0.108, ly = PLATE + 0.075;
+  box(LW + 0.014, LH + 0.014, 0.008, dark, 0, ly, BD / 2 + 0.006, g).castShadow = false;
+  const lcd = new THREE.Mesh(new THREE.PlaneGeometry(LW, LH), new THREE.MeshBasicMaterial({ map: lcdT, toneMapped: false }));
+  lcd.position.set(0, ly, BD / 2 + 0.0105);
+  g.add(lcd);
+
   // label above the bin
   const el = document.createElement('div');
   el.className = 'tag';
@@ -227,7 +237,7 @@ DATA.bins.forEach((cfg, i) => {
   pickables.push(hit);
 
   bins.set(cfg.bin, {
-    cfg, g, inst, caps, slots, capacity, binMat, ringMat, led, el,
+    cfg, g, inst, caps, slots, capacity, binMat, ringMat, led, el, lcdC, lcdT, lcdKey: '',
     portWorld: new THREE.Vector3(x + BW / 2 - 0.035, base + PLATE / 2, BD / 2 - 0.01),
     shown: null, target: null, status: null, low: false, flashUntil: 0, lastReading: 0,
   });
@@ -242,15 +252,19 @@ box(0.22, 0.15, 0.08, dark, 0.04, 0, 0, gw);
 box(0.006, 0.12, 0.006, dark, 0.13, 0.13, -0.02, gw);                       // antenna
 const gwLed = new THREE.Mesh(new THREE.SphereGeometry(0.012, 16, 12),
   new THREE.MeshStandardMaterial({ color: 0x999999, emissive: 0x999999, emissiveIntensity: 1.2 }));
-gwLed.position.set(0.11, 0.045, 0.042);
+gwLed.position.set(0.128, 0.055, 0.042);
 gw.add(gwLed);
-const screenMat = new THREE.MeshBasicMaterial({ color: 0x1b2430 });
-box(0.12, 0.06, 0.002, screenMat, 0.0, 0.01, 0.041, gw).castShadow = false;
+// gateway screen: Modbus poll, edge rule and MQTT link, like the status page of an edge device
+const gwC = document.createElement('canvas'); gwC.width = 512; gwC.height = 326;
+const gwT = new THREE.CanvasTexture(gwC); gwT.colorSpace = THREE.SRGBColorSpace; gwT.anisotropy = 8;
+const gwScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.102), new THREE.MeshBasicMaterial({ map: gwT, toneMapped: false }));
+gwScreen.position.set(0.012, -0.005, 0.0405);
+gw.add(gwScreen);
 const gwEl = document.createElement('div');
 gwEl.className = 'ptag';
-gwEl.innerHTML = '<b>gw01</b> · Node-RED edge<br><span class="q">Modbus TCP → P-240 → MQTT 5</span>';
+gwEl.innerHTML = '<b>gw01</b> · Node-RED edge';
 const gwTag = new CSS2DObject(gwEl);
-gwTag.position.set(0.04, -0.09, 0.04); gwTag.center.set(0.5, 0);
+gwTag.position.set(0.04, -0.085, 0.04); gwTag.center.set(0.5, 0);
 gw.add(gwTag);
 const GW_PORT = GW.clone().add(new THREE.Vector3(-0.07, -0.05, 0.04));
 const GW_UP = GW.clone().add(new THREE.Vector3(0.13, 0.19, -0.02));
@@ -623,7 +637,28 @@ function log(text, cls = '') {
 
 function setChip(el, cls, text) { el.className = 'chip ' + cls; el.textContent = text; }
 
+function drawGw() {
+  const c = gwC.getContext('2d'), W = gwC.width, H = gwC.height;
+  const all = [...bins.values()], seen = all.filter(b => b.target != null).length;
+  const flagged = all.filter(b => b.status).length, low = all.filter(b => b.target != null && !b.status && b.target <= b.cfg.ROP).length;
+  c.fillStyle = '#0d1218'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#8C1D40'; c.fillRect(0, 0, W, 54);
+  c.textBaseline = 'middle'; c.fillStyle = '#fff'; c.font = '700 32px Segoe UI, Arial'; c.fillText('gw01 · Node-RED edge', 14, 28);
+  const line = (y, label, value, color) => {
+    c.fillStyle = '#aab3bf'; c.font = '28px Segoe UI, Arial'; c.fillText(label, 14, y);
+    c.textAlign = 'right'; c.fillStyle = color; c.font = '700 32px Consolas, monospace'; c.fillText(value, W - 14, y); c.textAlign = 'left';
+  };
+  line(92, 'Modbus poll', `${seen}/6 bins`, seen === 6 ? '#7CF2A0' : '#FFC627');
+  line(137, 'At or below ROP', String(low), low ? '#FFC627' : '#7CF2A0');
+  line(182, 'Sensors flagged', String(flagged), flagged ? '#ff8a8a' : '#7CF2A0');
+  line(227, 'MQTT 5 / TLS', state.broker === false ? 'DOWN' : 'OK', state.broker === false ? '#ff8a8a' : '#7CF2A0');
+  line(272, 'Queued', String(state.queue || 0), state.queue ? '#FFC627' : '#7CF2A0');
+  line(312, 'Sent', state.sent.toLocaleString('en-US'), '#e8edf2');
+  gwT.needsUpdate = true;
+}
+
 function refreshChips() {
+  drawGw();
   const stale = state.lastMsg && performance.now() - state.lastMsg > 6000;
   if (!state.lastMsg) setChip(ui.gw, '', 'gateway: waiting');
   else if (state.gateway === 'offline') setChip(ui.gw, 'flag', 'gateway offline (last will)');
@@ -751,6 +786,32 @@ function burst(b, text, cls = '') {
   })();
 }
 
+function drawLcd(b) {
+  const units = b.target, st = b.status || 0;
+  const grams = b.cfg.tare_g + units * b.cfg.unit_g / (b.cfg.scale_k || 1);
+  const key = units + '|' + st;
+  if (key === b.lcdKey) return;
+  b.lcdKey = key;
+  const c = b.lcdC.getContext('2d'), W = b.lcdC.width, H = b.lcdC.height;
+  const low = units <= b.cfg.ROP;
+  c.fillStyle = '#10151c'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#8C1D40'; c.fillRect(0, 0, W, 46);
+  c.fillStyle = '#fff'; c.font = '700 28px Segoe UI, Arial'; c.textBaseline = 'middle';
+  c.fillText(`KANBAN ${b.cfg.bin.toUpperCase()}`, 16, 24);
+  c.textAlign = 'right'; c.font = '600 24px Segoe UI, Arial'; c.fillStyle = '#FFC627';
+  c.fillText(`MODBUS ID ${b.cfg.unit_id}`, W - 16, 24); c.textAlign = 'left';
+  c.fillStyle = st ? '#ff8a8a' : '#7CF2A0'; c.font = '700 66px Consolas, monospace';
+  c.fillText(st === 2 ? '---- g' : fmt(grams, 1) + ' g', 16, 104);
+  c.fillStyle = '#9aa4b2'; c.font = '22px Segoe UI, Arial';
+  c.fillText('gross weight · registers 40001-40002 (mg)', 16, 152);
+  c.fillStyle = st ? '#ff8a8a' : low ? '#FFC627' : '#e8edf2'; c.font = '700 34px Segoe UI, Arial';
+  c.fillText(`${fmt(units)} units`, 16, 198);
+  c.textAlign = 'right'; c.font = '700 26px Segoe UI, Arial';
+  c.fillText(st === 1 ? 'SENSOR FAULT' : st === 2 ? 'STUCK' : low ? 'REORDER POINT' : 'OK', W - 16, 198);
+  c.textAlign = 'left';
+  b.lcdT.needsUpdate = true;
+}
+
 function paintBin(b) {
   const units = b.target;
   if (units == null) return;
@@ -767,6 +828,7 @@ function paintBin(b) {
   b.row.querySelector('.u').textContent = fmt(units);
   b.row.querySelector('.st').textContent = flag;
   b.row.querySelector('.bar i').style.width = Math.min(100, 100 * units / b.capacity) + '%';
+  drawLcd(b);
 }
 
 // ---------------------------------------------------------------- animation loop

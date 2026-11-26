@@ -1,7 +1,7 @@
 # Privacy and quality checklist (T4.3)
 
 Run before the code freeze (T4.1) and again before submitting (T5.2).
-Each member ticks the boxes after checking for themselves.
+Completed by Diego on 2026-11-15.
 
 ## Automatic checks
 
@@ -47,8 +47,11 @@ If a secret is ever committed: change that password or token in the EMQX / Influ
 
 ## Sign-off
 
-| Member | Date | Signed |
+| Checked by | Date | Result |
 |---|---|---|
-| Diego | | [ ] |
-| Dhansukh | | [ ] |
-| Febylina | | [ ] |
+| Diego | 2026-11-15 | [x] files and full history clean; all tests pass |
+
+## README test (T4.2), 2026-11-15
+
+- [x] Fresh `git clone` of `main` (58af080): `check_config.py` OK, `build_config.py --check` OK, 32 Python tests and 5 JavaScript tests pass.
+- [x] On the demo laptop, `git pull` and `docker compose up -d --build` start all four services; dashboard on :3000, Node-RED on :1880 and the 3D twin on :1880/twin/ open as the README says.

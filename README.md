@@ -97,7 +97,8 @@ and every MQTT message leaving the gateway. The L3 screen draws only what reache
 stops during a network cut and backfills from the edge queue. Each reorder opens a requisition on
 the L4 screen; when the stock shows the delivery, the requisition is closed with its actual lead
 time (compared with the L = 20 days that P-240 assumes) and the delivery flies back to the bin.
-Use the view buttons (Overview, Shelf, L3, L4) or click a screen; click a bin for its P-240 values.
+Each bin carries a smart-bin display with its Modbus unit ID, the gross weight its load cell
+reports (registers 40001-40002) and the units the edge computes. Use the view buttons (Overview, Shelf, L3, L4) or click a screen; click a bin for its P-240 values.
 
 | Source | What feeds it |
 |---|---|
@@ -143,6 +144,12 @@ same messages seen in MQTT Explorer on EMQX Cloud (TLS, port 8883).
 ![Grafana dashboard during a replay](docs/img/dashboard.png)
 
 ![MQTT messages on EMQX Cloud](docs/img/mqtt_explorer.png)
+
+## Final presentation (2 December 2026)
+
+- Slide deck: [HTML](https://diegobethancourth.github.io/smart_kanban_bins/presentation/SmartKanban_Final_Deck.html) (opens in the browser; N = speaker notes, F = full screen) · [PDF](docs/presentation/SmartKanban_Final_Deck.pdf)
+- Backup demo video, 2:46 at 2× speed, with subtitles: [demo_backup.mp4](docs/presentation/demo_backup.mp4)
+- Speaker script: [SmartKanban_Speaker_Script.pdf](docs/presentation/SmartKanban_Speaker_Script.pdf)
 
 ## Documentation
 

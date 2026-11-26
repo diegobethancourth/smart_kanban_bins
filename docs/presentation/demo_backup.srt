@@ -1,0 +1,56 @@
+1
+00:00:00,250 --> 00:00:08,500
+1 · Data generation: the Python simulator replays the real SALMI stock of six medicines (simulator log in Docker)
+
+2
+00:00:08,600 --> 00:00:22,500
+2 · Transmission: MQTT Explorer receives the topics css/UE-A/bins/… on EMQX Cloud, MQTT 5 over TLS
+
+3
+00:00:22,600 --> 00:00:36,500
+Each bin publishes its level, reorder and EPCIS events; the gateway status "online" comes from the MQTT last will
+
+4
+00:00:36,600 --> 00:00:47,500
+3 · Edge logic: Node-RED polls the six load cells every second over Modbus TCP and converts grams to units
+
+5
+00:00:47,600 --> 00:00:58,500
+P-240 at the edge: a bin at or below its reorder point fires exactly one REORDER event (here bin06: 70 ≤ 70.6)
+
+6
+00:00:58,600 --> 00:01:07,150
+Everything runs in Docker: simulator, Node-RED edge, ingest service and Grafana
+
+7
+00:01:07,250 --> 00:01:27,150
+4 · Cloud storage: the ingest service writes every message into InfluxDB Cloud, bucket smart_kanban, at the time the edge measured it
+
+8
+00:01:27,250 --> 00:01:47,100
+InfluxDB Data Explorer: grams of bin01 over time; each point keeps its bin, item and edge timestamp
+
+9
+00:01:47,200 --> 00:01:54,950
+5 · Dashboard: Grafana reads InfluxDB Cloud: gateway ONLINE, 0 flagged bins and the reorder events
+
+10
+00:01:55,050 --> 00:02:05,450
+Stock of each bin (maroon) against its P-240 reorder point (dashed gold); each refill is a step up
+
+11
+00:02:05,550 --> 00:02:14,950
+6 · 3D digital twin: the six bins on load cells, the gateway and the cloud; the gold ring marks the reorder point
+
+12
+00:02:15,050 --> 00:02:22,450
+ISA-95 levels 3 and 4: the dashboard screen and the ERP, where each reorder opens a requisition that closes when the delivery arrives
+
+13
+00:02:22,550 --> 00:02:34,950
+Click a bin to see its P-240 values: average demand, lead time, safety stock and reorder point
+
+14
+00:02:35,050 --> 00:02:45,500
+The events list logs every P-240 reorder and every receipt that closes its requisition, with the actual lead time
+
