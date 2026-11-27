@@ -2,11 +2,11 @@
 
 One entry per decision: date, what was decided, and why.
 
-## 2026-10-21 · MQTT broker: EMQX Cloud Serverless instead of HiveMQ Cloud
+## 2026-10-21 · MQTT broker: EMQX Cloud Serverless
 
 - **Decision:** use EMQX Cloud Serverless as the cloud MQTT broker, with the spending limit set to 0.
-- **Why:** HiveMQ Cloud now offers only a paid Starter plan with a 15-day trial, which would expire during the project. EMQX Serverless has a free monthly quota (1 million session minutes, 1 GB of traffic) and needs no payment card.
-- **What does not change:** MQTT 5.0 over TLS on port 8883, the topic structure, QoS and the last-will design. The proposal deck names HiveMQ Cloud; the architecture is the same, only the provider changes.
+- **Why:** a free monthly quota (1 million session minutes, 1 GB of traffic) with MQTT 5.0, TLS and per-user authentication, and no payment card; a managed broker means no server to run or patch.
+- **Design:** MQTT 5.0 over TLS on port 8883, the topic structure, QoS 1 and the last-will message.
 - **Fallback:** secure WebSockets on port 8084 if 8883 is blocked.
 
 ## 2026-10-21 · Simulation data: scale model (option A)
@@ -18,7 +18,7 @@ One entry per decision: date, what was decided, and why.
 
 - **Decision:** the edge reads the six bins with the `modbus-serial` npm library inside one Function node ("Modbus poll"), installed in the edge Docker image.
 - **Why:** current versions of `node-red-contrib-modbus` download one of their dependencies from a third-party server (Cloudsmith) instead of npm. That made the install fail in a restricted network, and it is a risk for the demo build. `modbus-serial` is on npm and is also what the contrib nodes use underneath.
-- **What does not change:** Modbus TCP, function code 3, one unit ID per bin, polling every second.
+- **Design:** MQTT 5.0 over TLS on port 8883, the topic structure, QoS 1 and the last-will message.
 
 ## 2026-11-07 · Register map: milligrams, gross weight, simulated time
 
